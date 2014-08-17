@@ -6,6 +6,7 @@ use warnings;
 
 use Config::IOD::Reader;
 use File::ShareDir ':ALL';
+use Test::Exception;
 use Test::More 0.98;
 
 my $dir = dist_dir('IOD-Examples');
@@ -17,17 +18,20 @@ my @files = glob "$dir/examples/*.iod";
 diag explain \@files;
 
 for my $file (@files) {
-    next if $file =~ /TODO-|invalid-/;
-
-    my $res = $reader->read_file($file);
-    my $expected = Config::IOD::Reader::__decode_json(
-        Config::IOD::Reader::__read_file("$file.json")
-      );
+    next if $file =~ /TODO-/;
 
     subtest "file $file" => sub {
-        is_deeply($res, $expected->[2])
-            or diag explain $res, $expected->[2];
-    };
+        if ($file =~ /invalid-/) {
+            dies_ok { $reader->read_file($file) } "dies";
+        } else {
+            my $res = $reader->read_file($file);
+            my $expected = Config::IOD::Reader::__decode_json(
+                Config::IOD::Reader::__read_file("$file.json")
+              );
+            is_deeply($res, $expected->[2])
+                or diag explain $res, $expected->[2];
+        };
+    }
 }
 
 DONE_TESTING:
