@@ -408,8 +408,8 @@ with the value of (as Perl literal) C<"!json null">.
 
 =head2 enable_quoting => bool (default: 1)
 
-NOT YET IMPLEMENTED. If set to false, then quotes on key value will be ignored
-and key value will be parsed as verbatim. Example:
+If set to false, then quotes on key value will be ignored and key value will be
+parsed as verbatim. Example:
 
  name = "line 1\nline2"
 
