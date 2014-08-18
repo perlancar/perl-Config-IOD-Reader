@@ -446,7 +446,8 @@ instead of the correct:
 
  ;!foo
 
-is very common, this reader can be configured to allow it.
+is very common, the spec allows it. This reader, however, can be configured to
+be more strict.
 
 
 =head1 METHODS
