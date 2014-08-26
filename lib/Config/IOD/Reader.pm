@@ -375,9 +375,15 @@ sub read_string {
 
  use Config::IOD::Reader;
  my $reader = Config::IOD::Reader->new(
-     # known options
-     # allow_directives    => [...],
-     # disallow_directives => ['include'],
+     # list of known attributes, with their default values
+     # default_section     => 'GLOBAL',
+     # enable_encoding     => 1,
+     # enable_quoting      => 1,
+     # allow_encodings     => undef, # or ['base64','json',...]
+     # disallow_encodings  => undef, # or ['base64','json',...]
+     # allow_directives    => undef, # or ['include','merge',...]
+     # disallow_directives => undef, # or ['include','merge',...]
+     # allow_bang_only     => 1,
  );
  my $config_hash = $reader->read_file('config.iod');
 
