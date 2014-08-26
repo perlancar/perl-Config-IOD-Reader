@@ -1,5 +1,12 @@
 Revision history for Config-IOD-Reader
 
+0.03     2014-08-26 (PERLANCAR)
+
+         - [Bugfix] Canonicalize encoding shorthand 'j' and 'h' (to 'json' and
+           'hex', respectively) before testing against
+           {allow,disallow}_encodings.
+
+
 0.02     2014-08-18 (SHARYANTO)
 
          - No functional changes.
