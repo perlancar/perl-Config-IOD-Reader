@@ -289,6 +289,9 @@ sub _read_string {
             }
 
             if (defined $enc) {
+                # canonicalize shorthand
+                $enc = "json" if $enc eq 'j';
+                $enc = "hex"  if $enc eq 'h';
                 if ($self->{allow_encodings}) {
                     $self->_err("Encoding '$enc' is not in ".
                                     "allow_encodings list")
@@ -299,13 +302,13 @@ sub _read_string {
                                     "disallow_encodings list")
                         if grep { $_ eq $enc } @{$self->{disallow_encodings}};
                 }
-                if ($enc eq 'j' || $enc eq 'json') {
+                if ($enc eq 'json') {
                     my $res = __decode_json($val);
                     if ($res->[0] != 200) {
                         $self->_err("Invalid JSON");
                     }
                     $val = $res->[2];
-                } elsif ($enc eq 'h' || $enc eq 'hex') {
+                } elsif ($enc eq 'hex') {
                     $val =~ s/\s*[;#].*\z//; # shave comment
                     $val = __decode_hex($val);
                 } elsif ($enc eq 'base64') {

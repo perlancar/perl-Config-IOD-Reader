@@ -96,8 +96,9 @@ _
         args  => {allow_encodings=>['json']},
         input => <<'_',
 name=!json "1\n2"
+name2=!j "3\n4"
 _
-        result => {GLOBAL=>{name=>"1\n2"}},
+        result => {GLOBAL=>{name=>"1\n2", name2=>"3\n4"}},
     );
 };
 
@@ -106,6 +107,13 @@ subtest "opt: disallow_encodings" => sub {
         args  => {disallow_encodings=>['json']},
         input => <<'_',
 name=!json "1\n2"
+_
+        dies => 1,
+    );
+    test_read_iod(
+        args  => {disallow_encodings=>['json']},
+        input => <<'_',
+name=!j "1\n2"
 _
         dies => 1,
     );
