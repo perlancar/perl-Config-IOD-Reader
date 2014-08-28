@@ -74,6 +74,26 @@ _
     );
 };
 
+subtest "opt: enable_bracket=0" => sub {
+    test_read_iod(
+        args  => {enable_bracket=>0},
+        input => <<'_',
+name=[1,2,3]
+_
+        result => {GLOBAL=>{name=>'[1,2,3]'}},
+    );
+};
+
+subtest "opt: enable_brace=0" => sub {
+    test_read_iod(
+        args  => {enable_brace=>0},
+        input => <<'_',
+name={"a":1}
+_
+        result => {GLOBAL=>{name=>'{"a":1}'}},
+    );
+};
+
 subtest "opt: enable_encoding=0" => sub {
     test_read_iod(
         args  => {enable_encoding=>0},

@@ -15,6 +15,8 @@ sub new {
     $attrs{allow_bang_only} //= 1;
     $attrs{enable_encoding} //= 1;
     $attrs{enable_quoting}  //= 1;
+    $attrs{enable_bracket}  //= 1;
+    $attrs{enable_brace}    //= 1;
     bless \%attrs, $class;
 }
 
@@ -286,6 +288,20 @@ sub _read_string {
                     $self->_err("Invalid JSON string");
                 }
                 $val = $res->[2];
+            } elsif ($self->{enable_bracket} && $val =~ /^\[/) {
+                $val =~ s/\s*[;#][^\]]*\z//; # allow comment if not ambiguous
+                my $res = __decode_json($val);
+                if ($res->[0] != 200) {
+                    $self->_err("Invalid JSON array");
+                }
+                $val = $res->[2];
+            } elsif ($self->{enable_brace} && $val =~ /^\{/) {
+                $val =~ s/\s*[;#][^}]*\z//; # allow comment if not ambiguous
+                my $res = __decode_json($val);
+                if ($res->[0] != 200) {
+                    $self->_err("Invalid JSON object (hash)");
+                }
+                $val = $res->[2];
             }
 
             if (defined $enc) {
@@ -382,6 +398,8 @@ sub read_string {
      # default_section     => 'GLOBAL',
      # enable_encoding     => 1,
      # enable_quoting      => 1,
+     # enable_backet       => 1,
+     # enable_brace        => 1,
      # allow_encodings     => undef, # or ['base64','json',...]
      # disallow_encodings  => undef, # or ['base64','json',...]
      # allow_directives    => undef, # or ['include','merge',...]
@@ -412,7 +430,7 @@ parsed as verbatim. Example:
 
  name = !json null
 
-With C<disable_encoding> in effect, value will not be undef but will be string
+With C<enable_encoding> turned off, value will not be undef but will be string
 with the value of (as Perl literal) C<"!json null">.
 
 =head2 enable_quoting => bool (default: 1)
@@ -422,8 +440,27 @@ parsed as verbatim. Example:
 
  name = "line 1\nline2"
 
-With C<disable_quoting> in effect, value will not be a two-line string, but will
+With C<enable_quoting> turned off, value will not be a two-line string, but will
 be a one line string with the value of (as Perl literal) C<"line 1\\nline2">.
+
+=head2 enable_bracket => bool (default: 1)
+
+If set to false, then JSON literal array will be parsed as verbatim. Example:
+
+ name = [1,2,3]
+
+With C<enable_bracket> turned off, value will not be a three-element array, but
+will be a string with the value of (as Perl literal) C<"[1,2,3]">.
+
+=head2 enable_brace => bool (default: 1)
+
+If set to false, then JSON literal object (hash) will be parsed as verbatim.
+Example:
+
+ name = {"a":1,"b":2}
+
+With C<enable_brace> turned off, value will not be a hash with two pairs, but
+will be a string with the value of (as Perl literal) C<'{"a":1,"b":2}'>.
 
 =head2 allow_encodings => array
 
