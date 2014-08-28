@@ -1,5 +1,13 @@
 Revision history for Config-IOD-Reader
 
+0.04     2014-08-28 (PERLANCAR)
+
+         - Add options: enable_bracket, enable_brace.
+
+         - Update specification to IOD 0.9.6 (parse implicit JSON array &
+           object).
+
+
 0.03     2014-08-26 (PERLANCAR)
 
          - [Bugfix] Canonicalize encoding shorthand 'j' and 'h' (to 'json' and
