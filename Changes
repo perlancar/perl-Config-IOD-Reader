@@ -1,5 +1,11 @@
 Revision history for Config-IOD-Reader
 
+0.05     2014-08-29 (PERLANCAR)
+
+         - Add experimental support for !expr encoding. Only a limited subset is
+           supported, but it should already be adequate for common cases.
+
+
 0.04     2014-08-28 (PERLANCAR)
 
          - Add options: enable_bracket, enable_brace.
