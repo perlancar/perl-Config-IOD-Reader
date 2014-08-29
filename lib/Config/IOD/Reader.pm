@@ -17,6 +17,7 @@ sub new {
     $attrs{enable_quoting}  //= 1;
     $attrs{enable_bracket}  //= 1;
     $attrs{enable_brace}    //= 1;
+    $attrs{enable_expr}     //= 0;
     bless \%attrs, $class;
 }
 
@@ -121,6 +122,23 @@ sub __decode_hex {
 sub __decode_base64 {
     require MIME::Base64;
     MIME::Base64::decode_base64(shift);
+}
+
+sub _decode_expr {
+    my ($self, $val) = @_;
+    require Config::IOD::Reader::Expr;
+    no strict 'refs';
+    local *{"Config::IOD::Reader::Expr::val"} = sub {
+        my $arg = shift;
+        if ($arg =~ /(.+)\.(.+)/) {
+            return $self->{_res}{$1}{$2};
+        } else {
+            return $self->{_res}{ $self->{_cur_section} }{$arg};
+        }
+    };
+    my $res = Config::IOD::Reader::Expr::_parse_expr($val);
+    $self->_err("Can't decode expr: $res->[1]") if $res->[0] != 200;
+    $res->[2];
 }
 
 sub _err {
@@ -308,6 +326,7 @@ sub _read_string {
                 # canonicalize shorthand
                 $enc = "json" if $enc eq 'j';
                 $enc = "hex"  if $enc eq 'h';
+                $enc = "expr" if $enc eq 'e';
                 if ($self->{allow_encodings}) {
                     $self->_err("Encoding '$enc' is not in ".
                                     "allow_encodings list")
@@ -330,6 +349,10 @@ sub _read_string {
                 } elsif ($enc eq 'base64') {
                     $val =~ s/\s*[;#].*\z//; # shave comment
                     $val = __decode_base64($val);
+                } elsif ($enc eq 'expr') {
+                    $self->_err("Expr is not allowed (enable_expr=0)")
+                        unless $self->{enable_expr};
+                    $val = $self->_decode_expr($val);
                 } else {
                     $self->_err("Unknown encoding '$enc'");
                 }
@@ -405,6 +428,7 @@ sub read_string {
      # allow_directives    => undef, # or ['include','merge',...]
      # disallow_directives => undef, # or ['include','merge',...]
      # allow_bang_only     => 1,
+     # enable_expr         => 0,
  );
  my $config_hash = $reader->read_file('config.iod');
 
@@ -414,6 +438,57 @@ sub read_string {
 This module reads L<IOD> configuration files. It is a minimalist alternative to
 the more fully-featured L<Config::IOD>. It cannot write IOD files and is
 optimized for low startup overhead.
+
+
+=head1 EXPRESSION
+
+Config::IOD::Reader 0.05 adds experimental support for expression. This allows
+you to do something like this:
+
+ [section1]
+ foo=1
+ bar="monkey"
+
+ [section2]
+ baz =!e 1+1
+ qux =!e "grease" . val("section1.bar")
+ quux=!e val("qux") . " " . val('baz')
+
+And the result will be:
+
+ {
+     section1 => {foo=>1, bar=>"monkey"},
+     section2 => {baz=>2, qux=>"greasemonkey", quux=>"greasemonkey 2"},
+ }
+
+For safety, you'll need to set C<enable_expr> to 1 first.
+
+The syntax of the expression (the C<expr> encoding) is not officially specified
+yet in the L<IOD> specification. It will probably be Expr (see
+L<Language::Expr::Manual::Syntax). At the moment, this module implements a very
+limited subset that is compatible (lowest common denominator) with Perl syntax
+and uses C<eval()> to evaluate the expression. However, only the limited subset
+is allowed (checked by Perl 5.10 regular expression).
+
+The supported terms:
+
+ number
+ string (double-quoted and single-quoted)
+ undef literal
+ function call (only the 'val' function is supported)
+ grouping (parenthesis)
+
+The supported operators are:
+
+ + - .
+ * / % x
+ **
+ unary -, unary +, !, ~
+
+The C<val()> function refers to the configuration key. If the argument contains
+".", it will be assumed as C<SECTIONNAME.KEYNAME>, otherwise it will access the
+current section's key. Since parsing is done in a single pass, you can only
+refer to the already mentioned key.
 
 
 =head1 ATTRIBUTES
@@ -467,10 +542,21 @@ will be a string with the value of (as Perl literal) C<'{"a":1,"b":2}'>.
 If defined, set list of allowed encodings. Note that if C<disallow_encodings> is
 also set, an encoding must also not be in that list.
 
+Also note that, for safety reason, if you want to enable C<expr> encoding,
+you'll also need to set C<enable_expr> to 1.
+
 =head2 disallow_encodings => array
 
 If defined, set list of disallowed encodings. Note that if C<allow_encodings> is
 also set, an encoding must also be in that list.
+
+Also note that, for safety reason, if you want to enable C<expr> encoding,
+you'll also need to set C<enable_expr> to 1.
+
+=head2 enable_expr => bool (default: 0)
+
+Whether to enable C<expr> encoding. By default this is turned on, for safety.
+Please see L</"EXPRESSION"> for more details.
 
 =head2 allow_directives => array
 

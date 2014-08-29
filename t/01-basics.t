@@ -170,6 +170,37 @@ _
     );
 };
 
+# temporarily placed here
+subtest "expr" => sub {
+    test_read_iod(
+        name  => "must be enabled first",
+        args  => {},
+        input => <<'_',
+a=!e 1+1
+_
+        dies => 1,
+    );
+    test_read_iod(
+        name  => "must be valid",
+        args  => {enable_expr=>1},
+        input => <<'_',
+a=!e 1+
+_
+        dies => 1,
+    );
+    test_read_iod(
+        args  => {enable_expr=>1},
+        input => <<'_',
+a=!e 1+1
+[sect]
+b=!e val("GLOBAL.a")*3
+c=!e val("b") x 3
+_
+        result => {GLOBAL=>{a=>2}, sect=>{b=>6, c=>666}},
+    );
+};
+
+
 DONE_TESTING:
 done_testing;
 
