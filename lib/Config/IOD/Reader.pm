@@ -465,7 +465,7 @@ For safety, you'll need to set C<enable_expr> to 1 first.
 
 The syntax of the expression (the C<expr> encoding) is not officially specified
 yet in the L<IOD> specification. It will probably be Expr (see
-L<Language::Expr::Manual::Syntax). At the moment, this module implements a very
+L<Language::Expr::Manual::Syntax>). At the moment, this module implements a very
 limited subset that is compatible (lowest common denominator) with Perl syntax
 and uses C<eval()> to evaluate the expression. However, only the limited subset
 is allowed (checked by Perl 5.10 regular expression).
