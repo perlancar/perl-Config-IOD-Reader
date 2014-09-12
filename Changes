@@ -1,5 +1,11 @@
 Revision history for Config-IOD-Reader
 
+0.06    2014-09-12 (PERLANCAR)
+
+	- Bugfix: handling of comment character inside string/array/object
+	  using quoting/bracket/brace.
+
+
 0.05     2014-08-29 (PERLANCAR)
 
          - Add experimental support for !expr encoding. Only a limited subset is
