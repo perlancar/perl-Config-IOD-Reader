@@ -1,5 +1,12 @@
 Revision history for Config-IOD-Reader
 
+0.07    2015-01-03 (PERLANCAR)
+
+	- No functional changes.
+
+	- Rebuild (Generate TODO.md).
+
+
 0.06    2014-09-12 (PERLANCAR)
 
 	- Bugfix: handling of comment character inside string/array/object
