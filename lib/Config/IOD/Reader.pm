@@ -600,14 +600,6 @@ Read IOD configuration from a file. Die on errors.
 Read IOD configuration from a string. Die on errors.
 
 
-=head1 TODO
-
-Add attribute: C<allow_dupe_section> (default: 1).
-
-Add attribute to set behaviour when encountering duplicate key name? Default is
-create array, but we can also croak, replace, ignore.
-
-
 =head1 SEE ALSO
 
 L<IOD>, L<Config::IOD>, L<IOD::Examples>
