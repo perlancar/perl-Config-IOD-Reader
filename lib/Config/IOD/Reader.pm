@@ -32,6 +32,16 @@ sub _merge {
     }
 }
 
+sub _init_read {
+    my $self = shift;
+
+    $self->SUPER::_init_read;
+    $self->{_res} = {};
+    $self->{_merge} = undef;
+    $self->{_num_seen_section_lines} = 0;
+    $self->{_cur_section} = $self->{default_section};
+}
+
 sub _read_string {
     my ($self, $str) = @_;
 
@@ -220,32 +230,6 @@ sub _read_string {
     $res;
 }
 
-sub _init_read {
-    my $self = shift;
-    $self->{_res} = {};
-    $self->{_merge} = undef;
-    $self->{_include_stack} = [];
-    $self->{_num_seen_section_lines} = 0;
-    $self->{_cur_section} = $self->{default_section};
-}
-
-sub read_file {
-    my ($self, $filename) = @_;
-    $self->_init_read;
-    my $res = $self->_push_include_stack($filename);
-    die "Can't read '$filename': $res->[1]" unless $res->[0] == 200;
-    $res =
-        $self->_read_string($self->_read_file($filename));
-    $self->_pop_include_stack;
-    $res;
-}
-
-sub read_string {
-    my ($self, $str) = @_;
-    $self->_init_read;
-    $self->_read_string($str);
-}
-
 1;
 #ABSTRACT: Read IOD configuration files
 
@@ -278,53 +262,7 @@ optimized for low startup overhead.
 
 =head1 EXPRESSION
 
-Config::IOD::Reader 0.05 adds experimental support for expression. This allows
-you to do something like this:
-
- [section1]
- foo=1
- bar="monkey"
-
- [section2]
- baz =!e 1+1
- qux =!e "grease" . val("section1.bar")
- quux=!e val("qux") . " " . val('baz')
-
-And the result will be:
-
- {
-     section1 => {foo=>1, bar=>"monkey"},
-     section2 => {baz=>2, qux=>"greasemonkey", quux=>"greasemonkey 2"},
- }
-
-For safety, you'll need to set C<enable_expr> to 1 first.
-
-The syntax of the expression (the C<expr> encoding) is not officially specified
-yet in the L<IOD> specification. It will probably be Expr (see
-L<Language::Expr::Manual::Syntax>). At the moment, this module implements a very
-limited subset that is compatible (lowest common denominator) with Perl syntax
-and uses C<eval()> to evaluate the expression. However, only the limited subset
-is allowed (checked by Perl 5.10 regular expression).
-
-The supported terms:
-
- number
- string (double-quoted and single-quoted)
- undef literal
- function call (only the 'val' function is supported)
- grouping (parenthesis)
-
-The supported operators are:
-
- + - .
- * / % x
- **
- unary -, unary +, !, ~
-
-The C<val()> function refers to the configuration key. If the argument contains
-".", it will be assumed as C<SECTIONNAME.KEYNAME>, otherwise it will access the
-current section's key. Since parsing is done in a single pass, you can only
-refer to the already mentioned key.
+# INSERT_BLOCK: lib/Config/IOD/Base.pm expression
 
 
 =head1 ATTRIBUTES
