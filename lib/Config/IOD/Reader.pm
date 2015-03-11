@@ -7,176 +7,7 @@ use 5.010001;
 use strict;
 use warnings;
 
-our $DEBUG = 0;
-
-sub new {
-    my ($class, %attrs) = @_;
-    $attrs{default_section} //= 'GLOBAL';
-    $attrs{allow_bang_only} //= 1;
-    $attrs{enable_encoding} //= 1;
-    $attrs{enable_quoting}  //= 1;
-    $attrs{enable_bracket}  //= 1;
-    $attrs{enable_brace}    //= 1;
-    $attrs{enable_expr}     //= 0;
-    bless \%attrs, $class;
-}
-
-# borrowed from Parse::CommandLine. differences: returns arrayref. return undef
-# on error (instead of dying).
-sub __parse_command_line {
-    my $str = shift;
-
-    $str =~ s/\A\s+//ms;
-    $str =~ s/\s+\z//ms;
-
-    my @argv;
-    my $buf;
-    my $escaped;
-    my $double_quoted;
-    my $single_quoted;
-
-    for my $char (split //, $str) {
-        if ($escaped) {
-            $buf .= $char;
-            $escaped = undef;
-            next;
-        }
-
-        if ($char eq '\\') {
-            if ($single_quoted) {
-                $buf .= $char;
-            }
-            else {
-                $escaped = 1;
-            }
-            next;
-        }
-
-        if ($char =~ /\s/) {
-            if ($single_quoted || $double_quoted) {
-                $buf .= $char;
-            }
-            else {
-                push @argv, $buf if defined $buf;
-                undef $buf;
-            }
-            next;
-        }
-
-        if ($char eq '"') {
-            if ($single_quoted) {
-                $buf .= $char;
-                next;
-            }
-            $double_quoted = !$double_quoted;
-            next;
-        }
-
-        if ($char eq "'") {
-            if ($double_quoted) {
-                $buf .= $char;
-                next;
-            }
-            $single_quoted = !$single_quoted;
-            next;
-        }
-
-        $buf .= $char;
-    }
-    push @argv, $buf if defined $buf;
-
-    if ($escaped || $single_quoted || $double_quoted) {
-        return undef;
-    }
-
-    \@argv;
-}
-
-sub __read_file {
-    my $filename = shift;
-    open my $fh, "<", $filename
-        or die "Can't open file '$filename': $!";
-    binmode($fh, ":utf8");
-    local $/;
-    return ~~<$fh>;
-}
-
-sub __decode_json {
-    state $json = do {
-        require JSON;
-        JSON->new->allow_nonref;
-    };
-    my $res;
-    eval { $res = $json->decode(shift) };
-    if ($@) {
-        return [500, "Invalid JSON: $@"];
-    } else {
-        return [200, "OK", $res];
-    }
-}
-
-sub __decode_hex {
-    pack("H*", shift);
-}
-
-sub __decode_base64 {
-    require MIME::Base64;
-    MIME::Base64::decode_base64(shift);
-}
-
-sub _decode_expr {
-    my ($self, $val) = @_;
-    require Config::IOD::Reader::Expr;
-    no strict 'refs';
-    local *{"Config::IOD::Reader::Expr::val"} = sub {
-        my $arg = shift;
-        if ($arg =~ /(.+)\.(.+)/) {
-            return $self->{_res}{$1}{$2};
-        } else {
-            return $self->{_res}{ $self->{_cur_section} }{$arg};
-        }
-    };
-    my $res = Config::IOD::Reader::Expr::_parse_expr($val);
-    $self->_err("Can't decode expr: $res->[1]") if $res->[0] != 200;
-    $res->[2];
-}
-
-sub _err {
-    my ($self, $msg) = @_;
-    die join(
-        "",
-        @{ $self->{_include_stack} } ? "$self->{_include_stack}[0] " : "",
-        "line $self->{_linum}: ",
-        $msg
-    );
-}
-
-sub _push_include_stack {
-    require Cwd;
-
-    my ($self, $path) = @_;
-
-    # included file's path is based on the main (topmost) file
-    if (@{ $self->{_include_stack} }) {
-        require File::Spec;
-        my (undef, $dir, $file) =
-            File::Spec->splitpath($self->{_include_stack}[-1]);
-        $path = File::Spec->rel2abs($path, $dir);
-    }
-
-    my $abs_path = Cwd::abs_path($path) or return [400, "Invalid path name"];
-    return [409, "Recursive", $abs_path]
-        if grep { $_ eq $abs_path } @{ $self->{_include_stack} };
-    push @{ $self->{_include_stack} }, $abs_path;
-    return [200, "OK", $abs_path];
-}
-
-sub _pop_include_stack {
-    my $self = shift;
-
-    die "BUG: Overpopped _pop_include_stack" unless @{$self->{_include_stack}};
-    pop @{ $self->{_include_stack} };
-}
+use parent qw(Config::IOD::Base);
 
 sub _merge {
     my ($self, $section) = @_;
@@ -239,7 +70,7 @@ sub _read_string {
                     if grep { $_ eq $directive }
                         @{$self->{disallow_directives}};
             }
-            my $args = __parse_command_line($line);
+            my $args = $self->_parse_command_line($line);
             if (!defined($args)) {
                 $self->_err("Invalid arguments syntax '$line'");
             }
@@ -257,7 +88,7 @@ sub _read_string {
                     $self->_err("Can't include '$path': $res->[1]");
                 }
                 $path = $res->[2];
-                $self->_read_string(__read_file($path));
+                $self->_read_string($self->_read_file($path));
                 $self->_pop_include_stack;
             } elsif ($directive eq 'merge') {
                 $self->{_merge} = @$args ? $args : undef;
@@ -301,7 +132,7 @@ sub _read_string {
                 $val = $2;
             } elsif ($self->{enable_quoting} && $val =~ /^"/) {
                 $val =~ s/("[^"]*")\s*[;#].*/$1/; # strip comment (not perfect)
-                my $res = __decode_json($val);
+                my $res = $self->_decode_json($val);
                 if ($res->[0] != 200) {
                     $self->_err("Invalid JSON string");
                 }
@@ -309,7 +140,7 @@ sub _read_string {
                 $impenc++;
             } elsif ($self->{enable_bracket} && $val =~ /^\[/) {
                 $val =~ s/(\[[^\]]*\])\s*[;#].*/$1/; # strip comment (not perfect)
-                my $res = __decode_json($val);
+                my $res = $self->_decode_json($val);
                 if ($res->[0] != 200) {
                     $self->_err("Invalid JSON array");
                 }
@@ -317,7 +148,7 @@ sub _read_string {
                 $impenc++;
             } elsif ($self->{enable_brace} && $val =~ /^\{/) {
                 $val =~ s/(\{[^\]]*\})\s*[;#].*/$1/; # strip comment (not perfect)
-                my $res = __decode_json($val);
+                my $res = $self->_decode_json($val);
                 if ($res->[0] != 200) {
                     $self->_err("Invalid JSON object (hash)");
                 }
@@ -341,17 +172,17 @@ sub _read_string {
                         if grep { $_ eq $enc } @{$self->{disallow_encodings}};
                 }
                 if ($enc eq 'json') {
-                    my $res = __decode_json($val);
+                    my $res = $self->_decode_json($val);
                     if ($res->[0] != 200) {
                         $self->_err("Invalid JSON");
                     }
                     $val = $res->[2];
                 } elsif ($enc eq 'hex') {
                     $val =~ s/\s*[;#].*\z//; # shave comment
-                    $val = __decode_hex($val);
+                    $val = $self->_decode_hex($val);
                 } elsif ($enc eq 'base64') {
                     $val =~ s/\s*[;#].*\z//; # shave comment
-                    $val = __decode_base64($val);
+                    $val = $self->_decode_base64($val);
                 } elsif ($enc eq 'expr') {
                     $self->_err("Expr is not allowed (enable_expr=0)")
                         unless $self->{enable_expr};
@@ -404,7 +235,7 @@ sub read_file {
     my $res = $self->_push_include_stack($filename);
     die "Can't read '$filename': $res->[1]" unless $res->[0] == 200;
     $res =
-        $self->_read_string(__read_file($filename));
+        $self->_read_string($self->_read_file($filename));
     $self->_pop_include_stack;
     $res;
 }
@@ -498,93 +329,7 @@ refer to the already mentioned key.
 
 =head1 ATTRIBUTES
 
-=head2 default_section => str (default: C<GLOBAL>)
-
-If a key line is specified before any section line, this is the section that the
-key will be put in.
-
-=head2 enable_encoding => bool (default: 1)
-
-If set to false, then encoding notation will be ignored and key value will be
-parsed as verbatim. Example:
-
- name = !json null
-
-With C<enable_encoding> turned off, value will not be undef but will be string
-with the value of (as Perl literal) C<"!json null">.
-
-=head2 enable_quoting => bool (default: 1)
-
-If set to false, then quotes on key value will be ignored and key value will be
-parsed as verbatim. Example:
-
- name = "line 1\nline2"
-
-With C<enable_quoting> turned off, value will not be a two-line string, but will
-be a one line string with the value of (as Perl literal) C<"line 1\\nline2">.
-
-=head2 enable_bracket => bool (default: 1)
-
-If set to false, then JSON literal array will be parsed as verbatim. Example:
-
- name = [1,2,3]
-
-With C<enable_bracket> turned off, value will not be a three-element array, but
-will be a string with the value of (as Perl literal) C<"[1,2,3]">.
-
-=head2 enable_brace => bool (default: 1)
-
-If set to false, then JSON literal object (hash) will be parsed as verbatim.
-Example:
-
- name = {"a":1,"b":2}
-
-With C<enable_brace> turned off, value will not be a hash with two pairs, but
-will be a string with the value of (as Perl literal) C<'{"a":1,"b":2}'>.
-
-=head2 allow_encodings => array
-
-If defined, set list of allowed encodings. Note that if C<disallow_encodings> is
-also set, an encoding must also not be in that list.
-
-Also note that, for safety reason, if you want to enable C<expr> encoding,
-you'll also need to set C<enable_expr> to 1.
-
-=head2 disallow_encodings => array
-
-If defined, set list of disallowed encodings. Note that if C<allow_encodings> is
-also set, an encoding must also be in that list.
-
-Also note that, for safety reason, if you want to enable C<expr> encoding,
-you'll also need to set C<enable_expr> to 1.
-
-=head2 enable_expr => bool (default: 0)
-
-Whether to enable C<expr> encoding. By default this is turned on, for safety.
-Please see L</"EXPRESSION"> for more details.
-
-=head2 allow_directives => array
-
-If defined, only directives listed here are allowed. Note that if
-C<disallow_directives> is also set, a directive must also not be in that list.
-
-=head2 disallow_directives => array
-
-If defined, directives listed here are not allowed. Note that if
-C<allow_directives> is also set, a directive must also be in that list.
-
-=head2 allow_bang_only => bool (default: 1)
-
-Since the mistake of specifying a directive like this:
-
- !foo
-
-instead of the correct:
-
- ;!foo
-
-is very common, the spec allows it. This reader, however, can be configured to
-be more strict.
+# INSERT_BLOCK: lib/Config/IOD/Base.pm attributes
 
 
 =head1 METHODS
@@ -602,6 +347,10 @@ Read IOD configuration from a string. Die on errors.
 
 =head1 SEE ALSO
 
-L<IOD>, L<Config::IOD>, L<IOD::Examples>
+L<IOD> - specification
+
+L<Config::IOD> - round-trip parser for reading as well as writing IOD documents
+
+L<IOD::Examples> - sample documents
 
 =cut

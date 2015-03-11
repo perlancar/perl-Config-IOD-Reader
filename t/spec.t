@@ -25,8 +25,8 @@ for my $file (@files) {
             dies_ok { $reader->read_file($file) } "dies";
         } else {
             my $res = $reader->read_file($file);
-            my $expected = Config::IOD::Reader::__decode_json(
-                Config::IOD::Reader::__read_file("$file.json")
+            my $expected = $reader->_decode_json(
+                $reader->_read_file("$file.json")
               );
             is_deeply($res, $expected->[2])
                 or diag explain $res, $expected->[2];

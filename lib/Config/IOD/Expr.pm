@@ -1,4 +1,4 @@
-package Config::IOD::Reader::Expr;
+package Config::IOD::Expr;
 
 # DATE
 # VERSION
