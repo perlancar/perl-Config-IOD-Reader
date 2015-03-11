@@ -43,7 +43,7 @@ sub _read_string {
         qr/^;\s*!\s*(\w+)\s*/;
 
     my @lines = split /^/, $str;
-    $self->{_linum} = 0;
+    local $self->{_linum} = 0;
   LINE:
     for my $line (@lines) {
         $self->{_linum}++;
