@@ -40,6 +40,7 @@ sub _init_read {
     $self->{_merge} = undef;
     $self->{_num_seen_section_lines} = 0;
     $self->{_cur_section} = $self->{default_section};
+    $self->{_arrayified} = {};
 }
 
 sub _read_string {

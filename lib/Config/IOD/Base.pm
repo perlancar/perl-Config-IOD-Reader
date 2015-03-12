@@ -373,4 +373,3 @@ Read IOD configuration from a file. Die on errors.
 =head2 $reader->read_string($str)
 
 Read IOD configuration from a string. Die on errors.
-
