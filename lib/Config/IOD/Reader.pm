@@ -58,8 +58,6 @@ sub _read_string {
     for my $line (@lines) {
         $self->{_linum}++;
 
-        $self->{_last} = '';
-
         # blank line
         if ($line !~ /\S/) {
             next LINE;
@@ -116,7 +114,6 @@ sub _read_string {
 
         # section line
         if ($line =~ /^\s*\[\s*(.+?)\s*\](?: \s*[;#].*)?/) {
-            $self->{_last} = 'section';
             my $prev_section = $self->{_cur_section};
             $self->{_cur_section} = $cur_section = $1;
             $res->{$cur_section} //= {};
