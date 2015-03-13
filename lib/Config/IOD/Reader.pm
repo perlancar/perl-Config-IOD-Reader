@@ -133,18 +133,26 @@ sub _read_string {
             my $name = $1;
             my $val  = $2;
 
-            my ($err, $parse_res, $decoded_val) = $self->_parse_raw_value($val);
-            $self->_err("Invalid value: " . $err) if $err;
+            # the common case is that value are not decoded or
+            # quoted/bracketed/braced, so we avoid calling _parse_raw_value here
+            # to avoid overhead
+            if ($val =~ /\A["!\\[\{]/) {
+                my ($err, $parse_res, $decoded_val) = $self->_parse_raw_value($val);
+                $self->_err("Invalid value: " . $err) if $err;
+                $val = $decoded_val;
+            } else {
+                $val =~ s/\s*[#;].*//; # strip comment
+            }
 
             if (exists $res->{$cur_section}{$name}) {
                 if ($self->{_arrayified}{$cur_section}{$name}++) {
-                    push @{ $res->{$cur_section}{$name} }, $decoded_val;
+                    push @{ $res->{$cur_section}{$name} }, $val;
                 } else {
                     $res->{$cur_section}{$name} = [
-                        $res->{$cur_section}{$name}, $decoded_val];
+                        $res->{$cur_section}{$name}, $val];
                 }
             } else {
-                $res->{$cur_section}{$name} = $decoded_val;
+                $res->{$cur_section}{$name} = $val;
             }
 
             next LINE;
