@@ -19,6 +19,7 @@ diag explain \@files;
 
 for my $file (@files) {
     next if $file =~ /TODO-/;
+    next if $file =~ /encoding-expr\.iod$/; # old file from older version
 
     subtest "file $file" => sub {
         if ($file =~ /invalid-/) {
