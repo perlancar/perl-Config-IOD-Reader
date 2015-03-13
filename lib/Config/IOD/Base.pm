@@ -7,6 +7,15 @@ use 5.010001;
 use strict;
 use warnings;
 
+use constant +{
+    COL_V_ENCODING => 0, # either "!j" or '"', '[', '{'
+    COL_V_WS1 => 1,
+    COL_V_VALUE => 2,
+    COL_V_WS2 => 3,
+    COL_V_COMMENT_CHAR => 4,
+    COL_V_COMMENT => 5,
+};
+
 sub new {
     my ($class, %attrs) = @_;
     $attrs{default_section} //= 'GLOBAL';
@@ -94,6 +103,202 @@ sub _parse_command_line {
     \@argv;
 }
 
+# return ($err, $res, $decoded_val)
+sub _parse_raw_value {
+    use experimental 'smartmatch';
+
+    my ($self, $val, $needs_res) = @_;
+
+    if ($val =~ /\A!/ && $self->{enable_encoding}) {
+
+        $val =~ s/!(\w+)(\s+)// or return ("Invalid syntax in encoded value");
+        my ($enc, $ws1) = ($1, $2);
+
+        # canonicalize shorthands
+        $enc = "json" if $enc eq 'j';
+        $enc = "hex"  if $enc eq 'h';
+        $enc = "expr" if $enc eq 'e';
+
+        if ($self->{allow_encodings}) {
+            return ("Encoding '$enc' is not in ".
+                        "allow_encodings list")
+                unless $enc ~~ @{$self->{allow_encodings}};
+        }
+        if ($self->{disallow_encodings}) {
+            return ("Encoding '$enc' is in ".
+                        "disallow_encodings list")
+                if $enc ~~ @{$self->{disallow_encodings}};
+        }
+
+        if ($enc eq 'json') {
+            # XXX imperfect regex for simplicity, comment should not contain
+            # "]", '"', or '}' or it will be gobbled up as value by greedy regex
+            # quantifier
+            $val =~ /\A
+                     (".*"|\[.*\]|\{.*\}|\S+)
+                     (\s*)
+                     (?: ([;#])(.*) )?
+                     \z/x or return ("Invalid syntax in JSON-encoded value");
+            my $res = [
+                "!$enc", # COL_V_ENCODING
+                $ws1, # COL_V_WS1
+                $1, # COL_V_VALUE
+                $2, # COL_V_WS2
+                $3, # COL_V_COMMENT_CHAR
+                $4, # COL_V_COMMENT
+            ] if $needs_res;
+            my $decode_res = $self->_decode_json($val);
+            return ($decode_res->[1]) unless $decode_res->[0] == 200;
+            return (undef, $res, $decode_res->[2]);
+        } elsif ($enc eq 'hex') {
+            $val =~ /\A
+                     ([0-9A-Fa-f]*)
+                     (\s*)
+                     (?: ([;#])(.*) )?
+                     \z/x or return ("Invalid syntax in hex-encoded value");
+            my $res = [
+                "!$enc", # COL_V_ENCODING
+                $ws1, # COL_V_WS1
+                $1, # COL_V_VALUE
+                $2, # COL_V_WS2
+                $3, # COL_V_COMMENT_CHAR
+                $4, # COL_V_COMMENT
+            ] if $needs_res;
+            my $decode_res = $self->_decode_hex($1);
+            return ($decode_res->[1]) unless $decode_res->[0] == 200;
+            return (undef, $res, $decode_res->[2]);
+        } elsif ($enc eq 'base64') {
+            $val =~ m!\A
+                      ([A-Za-z0-9+/]*=*)
+                      (\s*)
+                      (?: ([;#])(.*) )?
+                      \z!x or return ("Invalid syntax in base64-encoded value");
+            my $res = [
+                "!$enc", # COL_V_ENCODING
+                $ws1, # COL_V_WS1
+                $1, # COL_V_VALUE
+                $2, # COL_V_WS2
+                $3, # COL_V_COMMENT_CHAR
+                $4, # COL_V_COMMENT
+            ] if $needs_res;
+            my $decode_res = $self->_decode_base64($1);
+            return ($decode_res->[1]) unless $decode_res->[0] == 200;
+            return (undef, $res, $decode_res->[2]);
+        } elsif ($enc eq 'expr') {
+            return ("expr is not allowed (enable_expr=0)")
+                unless $self->{enable_expr};
+            # XXX imperfect regex, expression can't contain # and ; because it
+            # will be assumed as comment
+            $val =~ m!\A
+                      ((?:[^#;])+?)
+                      (\s*)
+                      (?: ([;#])(.*) )?
+                      \z!x or return ("Invalid syntax in expr-encoded value");
+            my $res = [
+                "!$enc", # COL_V_ENCODING
+                $ws1, # COL_V_WS1
+                $1, # COL_V_VALUE
+                $2, # COL_V_WS2
+                $3, # COL_V_COMMENT_CHAR
+                $4, # COL_V_COMMENT
+            ] if $needs_res;
+            my $decode_res = $self->_decode_expr($1);
+            return ($decode_res->[1]) unless $decode_res->[0] == 200;
+            return (undef, $res, $decode_res->[2]);
+        } else {
+            return ("unknown encoding '$enc'");
+        }
+
+    } elsif ($val =~ /\A"/ && $self->{enable_quoting}) {
+
+        $val =~ /\A
+                 "( (?:
+                         \\\\ | # backslash
+                         \\.  | # escaped something
+                         [^"\\]+ # non-doublequote or non-backslash
+                     )* )"
+                 (\s*)
+                 (?: ([;#])(.*) )?
+                 \z/x or return ("Invalid syntax in quoted string value");
+        my $res = [
+            '"', # COL_V_ENCODING
+            '', # COL_V_WS1
+            $1, # VOL_V_VALUE
+            $2, # COL_V_WS2
+            $3, # COL_V_COMMENT_CHAR
+            $4, # COL_V_COMMENT
+        ] if $needs_res;
+        my $decode_res = $self->_decode_json(qq("$1"));
+        return ($decode_res->[1]) unless $decode_res->[0] == 200;
+        return (undef, $res, $decode_res->[2]);
+
+    } elsif ($val =~ /\A\[/ && $self->{enable_bracket}) {
+
+        # XXX imperfect regex for simplicity, comment should not contain "]" or
+        # it will be gobbled up as value by greedy regex quantifier
+        $val =~ /\A
+                 \[(.*)\]
+                 (?:
+                     (\s*)
+                     ([#;])(.*)
+                 )?
+                 \z/x or return ("Invalid syntax in bracketed array value");
+        my $res = [
+            '[', # COL_V_ENCODING
+            '', # COL_V_WS1
+            $1, # VOL_V_VALUE
+            $2, # COL_V_WS2
+            $3, # COL_V_COMMENT_CHAR
+            $4, # COL_V_COMMENT
+        ] if $needs_res;
+        my $decode_res = $self->_decode_json("[$1]");
+        return ($decode_res->[1]) unless $decode_res->[0] == 200;
+        return (undef, $res, $decode_res->[2]);
+
+    } elsif ($val =~ /\A\{/ && $self->{enable_brace}) {
+
+        # XXX imperfect regex for simplicity, comment should not contain "}" or
+        # it will be gobbled up as value by greedy regex quantifier
+        $val =~ /\A
+                 \{(.*)\}
+                 (?:
+                     (\s*)
+                     ([#;])(.*)
+                 )?
+                 \z/x or return ("Invalid syntax in braced hash value");
+        my $res = [
+            '{', # COL_V_ENCODING
+            '', # COL_V_WS1
+            $1, # VOL_V_VALUE
+            $2, # COL_V_WS2
+            $3, # COL_V_COMMENT_CHAR
+            $4, # COL_V_COMMENT
+        ] if $needs_res;
+        my $decode_res = $self->_decode_json("{$1}");
+        return ($decode_res->[1]) unless $decode_res->[0] == 200;
+        return (undef, $res, $decode_res->[2]);
+
+    } else {
+
+        $val =~ /\A
+                 (.*?)
+                 (\s*)
+                 (?: ([#;])(.*) )?
+                 \z/x or return ("Invalid syntax in value"); # shouldn't happen, regex should match any string
+        my $res = [
+            '', # COL_V_ENCODING
+            '', # COL_V_WS1
+            $1, # VOL_V_VALUE
+            $2, # COL_V_WS2
+            $3, # COL_V_COMMENT_CHAR
+            $4, # COL_V_COMMENT
+        ] if $needs_res;
+        return (undef, $res, $1);
+
+    }
+    # should not be reached
+}
+
 sub _decode_json {
     my ($self, $val) = @_;
     state $json = do {
@@ -111,13 +316,13 @@ sub _decode_json {
 
 sub _decode_hex {
     my ($self, $val) = @_;
-    pack("H*", $val);
+    [200, "OK", pack("H*", $val)];
 }
 
 sub _decode_base64 {
     my ($self, $val) = @_;
     require MIME::Base64;
-    MIME::Base64::decode_base64($val);
+    [200, "OK", MIME::Base64::decode_base64($val)];
 }
 
 sub _decode_expr {
@@ -133,9 +338,7 @@ sub _decode_expr {
             return $self->{_res}{ $self->{_cur_section} }{$arg};
         }
     };
-    my $res = Config::IOD::Expr::_parse_expr($val);
-    $self->_err("Can't decode expr: $res->[1]") if $res->[0] != 200;
-    $res->[2];
+    Config::IOD::Expr::_parse_expr($val);
 }
 
 sub _err {

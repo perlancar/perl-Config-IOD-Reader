@@ -133,86 +133,18 @@ sub _read_string {
             my $name = $1;
             my $val  = $2;
 
-            my $enc;
-            my $impenc; # implicit encoding
-            if ($self->{enable_encoding} && $val =~ /^!(\w+) (.*)/) {
-                $enc = $1;
-                $val = $2;
-            } elsif ($self->{enable_quoting} && $val =~ /^"/) {
-                $val =~ s/("[^"]*")\s*[;#].*/$1/; # strip comment (not perfect)
-                my $res = $self->_decode_json($val);
-                if ($res->[0] != 200) {
-                    $self->_err("Invalid JSON string");
-                }
-                $val = $res->[2];
-                $impenc++;
-            } elsif ($self->{enable_bracket} && $val =~ /^\[/) {
-                $val =~ s/(\[[^\]]*\])\s*[;#].*/$1/; # strip comment (not perfect)
-                my $res = $self->_decode_json($val);
-                if ($res->[0] != 200) {
-                    $self->_err("Invalid JSON array");
-                }
-                $val = $res->[2];
-                $impenc++;
-            } elsif ($self->{enable_brace} && $val =~ /^\{/) {
-                $val =~ s/(\{[^\]]*\})\s*[;#].*/$1/; # strip comment (not perfect)
-                my $res = $self->_decode_json($val);
-                if ($res->[0] != 200) {
-                    $self->_err("Invalid JSON object (hash)");
-                }
-                $val = $res->[2];
-                $impenc++;
-            }
-
-            if (defined $enc) {
-                # canonicalize shorthand
-                $enc = "json" if $enc eq 'j';
-                $enc = "hex"  if $enc eq 'h';
-                $enc = "expr" if $enc eq 'e';
-                if ($self->{allow_encodings}) {
-                    $self->_err("Encoding '$enc' is not in ".
-                                    "allow_encodings list")
-                        unless grep { $_ eq $enc } @{$self->{allow_encodings}};
-                }
-                if ($self->{disallow_encodings}) {
-                    $self->_err("Encoding '$enc' is in ".
-                                    "disallow_encodings list")
-                        if grep { $_ eq $enc } @{$self->{disallow_encodings}};
-                }
-                if ($enc eq 'json') {
-                    my $res = $self->_decode_json($val);
-                    if ($res->[0] != 200) {
-                        $self->_err("Invalid JSON");
-                    }
-                    $val = $res->[2];
-                } elsif ($enc eq 'hex') {
-                    $val =~ s/\s*[;#].*\z//; # shave comment
-                    $val = $self->_decode_hex($val);
-                } elsif ($enc eq 'base64') {
-                    $val =~ s/\s*[;#].*\z//; # shave comment
-                    $val = $self->_decode_base64($val);
-                } elsif ($enc eq 'expr') {
-                    $self->_err("Expr is not allowed (enable_expr=0)")
-                        unless $self->{enable_expr};
-                    $val = $self->_decode_expr($val);
-                } else {
-                    $self->_err("Unknown encoding '$enc'");
-                }
-            } else {
-                unless ($impenc) {
-                    $val =~ s/\s*[;#].*\z//; # shave comment
-                }
-            }
+            my ($err, $parse_res, $decoded_val) = $self->_parse_raw_value($val);
+            $self->_err("Invalid value: " . $err) if $err;
 
             if (exists $res->{$cur_section}{$name}) {
                 if ($self->{_arrayified}{$cur_section}{$name}++) {
-                    push @{ $res->{$cur_section}{$name} }, $val;
+                    push @{ $res->{$cur_section}{$name} }, $decoded_val;
                 } else {
                     $res->{$cur_section}{$name} = [
-                        $res->{$cur_section}{$name}, $val];
+                        $res->{$cur_section}{$name}, $decoded_val];
                 }
             } else {
-                $res->{$cur_section}{$name} = $val;
+                $res->{$cur_section}{$name} = $decoded_val;
             }
 
             next LINE;
