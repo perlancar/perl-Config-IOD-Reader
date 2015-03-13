@@ -20,6 +20,7 @@ sub new {
     my ($class, %attrs) = @_;
     $attrs{default_section} //= 'GLOBAL';
     $attrs{allow_bang_only} //= 1;
+    $attrs{allow_duplicate_key} //= 1;
     $attrs{enable_encoding} //= 1;
     $attrs{enable_quoting}  //= 1;
     $attrs{enable_bracket}  //= 1;
@@ -504,6 +505,30 @@ instead of the correct:
 
 is very common, the spec allows it. This reader, however, can be configured to
 be more strict.
+
+=head2 allow_duplicate_key => bool (default: 1)
+
+If set to 0, you can forbid duplicate key, e.g.:
+
+ [section]
+ a=1
+ a=2
+
+or:
+
+ [section]
+ a=1
+ b=2
+ c=3
+ a=10
+
+In traditional INI file, to specify an array you specify multiple keys. But when
+there is only a single key, it is unclear if the value is a single-element array
+or a scalar. You can use this setting to avoid this array/scalar ambiguity in
+config file and force user to use JSON encoding or bracket to specify array:
+
+ [section]
+ a=[1,2]
 
 =for END_BLOCK: attributes
 

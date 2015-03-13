@@ -170,6 +170,17 @@ _
     );
 };
 
+subtest "opt: allow_duplicate_key=0" => sub {
+    test_read_iod(
+        args  => {allow_duplicate_key=>0},
+        input => <<'_',
+a=1
+a=2
+_
+        dies => 1,
+    );
+};
+
 # temporarily placed here
 subtest "expr" => sub {
     test_read_iod(

@@ -145,7 +145,9 @@ sub _read_string {
             }
 
             if (exists $res->{$cur_section}{$name}) {
-                if ($self->{_arrayified}{$cur_section}{$name}++) {
+                if (!$self->{allow_duplicate_key}) {
+                    $self->_err("Duplicate key: $name (section $cur_section)");
+                } elsif ($self->{_arrayified}{$cur_section}{$name}++) {
                     push @{ $res->{$cur_section}{$name} }, $val;
                 } else {
                     $res->{$cur_section}{$name} = [
