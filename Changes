@@ -1,5 +1,12 @@
 Revision history for Config-IOD-Reader
 
+0.09    2015-03-13 (PERLANCAR)
+
+        - [Internal] Refactor value decoding to a separate method
+          _parse_raw_value() so it's usable by Config::IOD. Improve comment
+          parsing a bit.
+
+
 0.08    2015-03-12 (PERLANCAR)
 
 	- [Internal] Refactor some functionality out to a base class
