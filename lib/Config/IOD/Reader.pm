@@ -130,8 +130,8 @@ sub _read_string {
 
         # key line
         if ($line =~ /^\s*([^=]+?)\s*=\s*(.*)/) {
-            my $name = $1;
-            my $val  = $2;
+            my $key = $1;
+            my $val = $2;
 
             # the common case is that value are not decoded or
             # quoted/bracketed/braced, so we avoid calling _parse_raw_value here
@@ -144,17 +144,17 @@ sub _read_string {
                 $val =~ s/\s*[#;].*//; # strip comment
             }
 
-            if (exists $res->{$cur_section}{$name}) {
+            if (exists $res->{$cur_section}{$key}) {
                 if (!$self->{allow_duplicate_key}) {
-                    $self->_err("Duplicate key: $name (section $cur_section)");
-                } elsif ($self->{_arrayified}{$cur_section}{$name}++) {
-                    push @{ $res->{$cur_section}{$name} }, $val;
+                    $self->_err("Duplicate key: $key (section $cur_section)");
+                } elsif ($self->{_arrayified}{$cur_section}{$key}++) {
+                    push @{ $res->{$cur_section}{$key} }, $val;
                 } else {
-                    $res->{$cur_section}{$name} = [
-                        $res->{$cur_section}{$name}, $val];
+                    $res->{$cur_section}{$key} = [
+                        $res->{$cur_section}{$key}, $val];
                 }
             } else {
-                $res->{$cur_section}{$name} = $val;
+                $res->{$cur_section}{$key} = $val;
             }
 
             next LINE;
