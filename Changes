@@ -1,5 +1,14 @@
 Revision history for Config-IOD-Reader
 
+0.10    2015-03-18 (PERLANCAR)
+
+	- [Refactoring] Rename variable.
+
+	- Avoid file from older version: encoding-expr.iod [CT].
+
+	- Add attribute: allow_duplicate_key.
+
+
 0.09    2015-03-13 (PERLANCAR)
 
         - [Internal] Refactor value decoding to a separate method
