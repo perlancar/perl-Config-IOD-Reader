@@ -1,5 +1,13 @@
 Revision history for Config-IOD-Reader
 
+0.12    2015-03-19 (PERLANCAR)
+
+	- No functional changes.
+
+	- [Bugfix] Typo: Why do I keep typing ignore_unknown_encoding
+	  instead of ignore_unknown_directive???.
+
+
 0.11    2015-03-19 (PERLANCAR)
 
 	- Add option: ignore_unknown_directive.
