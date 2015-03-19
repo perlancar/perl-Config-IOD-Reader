@@ -64,6 +64,53 @@ sub _read_string {
             next LINE;
         }
 
+        # key line
+        if ($line =~ /^\s*([^=]+?)\s*=\s*(.*)/) {
+            my $key = $1;
+            my $val = $2;
+
+            # the common case is that value are not decoded or
+            # quoted/bracketed/braced, so we avoid calling _parse_raw_value here
+            # to avoid overhead
+            if ($val =~ /\A["!\\[\{]/) {
+                my ($err, $parse_res, $decoded_val) = $self->_parse_raw_value($val);
+                $self->_err("Invalid value: " . $err) if $err;
+                $val = $decoded_val;
+            } else {
+                $val =~ s/\s*[#;].*//; # strip comment
+            }
+
+            if (exists $res->{$cur_section}{$key}) {
+                if (!$self->{allow_duplicate_key}) {
+                    $self->_err("Duplicate key: $key (section $cur_section)");
+                } elsif ($self->{_arrayified}{$cur_section}{$key}++) {
+                    push @{ $res->{$cur_section}{$key} }, $val;
+                } else {
+                    $res->{$cur_section}{$key} = [
+                        $res->{$cur_section}{$key}, $val];
+                }
+            } else {
+                $res->{$cur_section}{$key} = $val;
+            }
+
+            next LINE;
+        }
+
+        # section line
+        if ($line =~ /^\s*\[\s*(.+?)\s*\](?: \s*[;#].*)?/) {
+            my $prev_section = $self->{_cur_section};
+            $self->{_cur_section} = $cur_section = $1;
+            $res->{$cur_section} //= {};
+            $self->{_num_seen_section_lines}++;
+
+            # previous section exists? do merging for previous section
+            if ($self->{_merge} && $self->{_num_seen_section_lines} > 1) {
+                $self->_merge($prev_section);
+            }
+
+            next LINE;
+        }
+
         # directive line
         if ($line =~ s/$directive_re//) {
             my $directive = $1;
@@ -115,53 +162,6 @@ sub _read_string {
 
         # comment line
         if ($line =~ /^\s*[;#]/) {
-            next LINE;
-        }
-
-        # section line
-        if ($line =~ /^\s*\[\s*(.+?)\s*\](?: \s*[;#].*)?/) {
-            my $prev_section = $self->{_cur_section};
-            $self->{_cur_section} = $cur_section = $1;
-            $res->{$cur_section} //= {};
-            $self->{_num_seen_section_lines}++;
-
-            # previous section exists? do merging for previous section
-            if ($self->{_merge} && $self->{_num_seen_section_lines} > 1) {
-                $self->_merge($prev_section);
-            }
-
-            next LINE;
-        }
-
-        # key line
-        if ($line =~ /^\s*([^=]+?)\s*=\s*(.*)/) {
-            my $key = $1;
-            my $val = $2;
-
-            # the common case is that value are not decoded or
-            # quoted/bracketed/braced, so we avoid calling _parse_raw_value here
-            # to avoid overhead
-            if ($val =~ /\A["!\\[\{]/) {
-                my ($err, $parse_res, $decoded_val) = $self->_parse_raw_value($val);
-                $self->_err("Invalid value: " . $err) if $err;
-                $val = $decoded_val;
-            } else {
-                $val =~ s/\s*[#;].*//; # strip comment
-            }
-
-            if (exists $res->{$cur_section}{$key}) {
-                if (!$self->{allow_duplicate_key}) {
-                    $self->_err("Duplicate key: $key (section $cur_section)");
-                } elsif ($self->{_arrayified}{$cur_section}{$key}++) {
-                    push @{ $res->{$cur_section}{$key} }, $val;
-                } else {
-                    $res->{$cur_section}{$key} = [
-                        $res->{$cur_section}{$key}, $val];
-                }
-            } else {
-                $res->{$cur_section}{$key} = $val;
-            }
-
             next LINE;
         }
 
