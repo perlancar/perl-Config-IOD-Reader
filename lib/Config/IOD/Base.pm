@@ -27,7 +27,7 @@ sub new {
     $attrs{enable_bracket}  //= 1;
     $attrs{enable_brace}    //= 1;
     $attrs{enable_expr}     //= 0;
-    $attrs{ignore_unknown_encoding} //= 0;
+    $attrs{ignore_unknown_directive} //= 0;
     # allow_encodings
     # disallow_encodings
     # allow_directives
@@ -532,7 +532,7 @@ config file and force user to use JSON encoding or bracket to specify array:
  [section]
  a=[1,2]
 
-=head2 ignore_unknown_encoding => bool (default: 0)
+=head2 ignore_unknown_directive => bool (default: 0)
 
 If set to true, will not die if an unknown directive is encountered. It will
 simply be ignored as a regular comment.
