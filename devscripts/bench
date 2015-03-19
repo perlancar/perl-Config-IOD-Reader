@@ -1,0 +1,28 @@
+#!/usr/bin/env perl
+
+use 5.010;
+use strict;
+use warnings;
+
+use Benchmark qw(cmpthese);
+use Config::IOD;
+use Config::IOD::Reader;
+use File::ShareDir qw(dist_file);
+use File::Slurper qw(read_text);
+
+my $path_basic       = dist_file(
+    'IOD-Examples', 'examples/extra-bench-basic-compat.iod');
+my $content_basic    = read_text($path_basic);
+my $path_typical1    = dist_file(
+    'IOD-Examples', 'examples/extra-bench-typical1.iod');
+my $content_typical1 = read_text($path_typical1);
+
+my $parser = Config::IOD->new;
+my $reader = Config::IOD::Reader->new;
+
+cmpthese(-1, {
+    'ciod , basic   ' => sub { $parser->read_string($content_basic   ) },
+    'ciod , typical1' => sub { $parser->read_string($content_typical1) },
+    'ciodr, basic   ' => sub { $reader->read_string($content_basic   ) },
+    'ciodr, typical1' => sub { $reader->read_string($content_typical1) },
+});
