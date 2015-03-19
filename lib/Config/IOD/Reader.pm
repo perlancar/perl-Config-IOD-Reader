@@ -103,7 +103,13 @@ sub _read_string {
                 $self->{_merge} = @$args ? $args : undef;
             } elsif ($directive eq 'noop') {
             } else {
-                $self->_err("Unknown directive '$directive'");
+                use DD; dd $self;
+                if ($self->{ignore_unknown_directive}) {
+                    # assume a regular comment
+                    next LINE;
+                } else {
+                    $self->_err("Unknown directive '$directive'");
+                }
             }
             next LINE;
         }

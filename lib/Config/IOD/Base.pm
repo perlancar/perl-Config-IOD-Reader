@@ -6,6 +6,7 @@ package Config::IOD::Base;
 use 5.010001;
 use strict;
 use warnings;
+use Carp;
 
 use constant +{
     COL_V_ENCODING => 0, # either "!j" or '"', '[', '{'
@@ -26,6 +27,7 @@ sub new {
     $attrs{enable_bracket}  //= 1;
     $attrs{enable_brace}    //= 1;
     $attrs{enable_expr}     //= 0;
+    $attrs{ignore_unknown_encoding} //= 0;
     # allow_encodings
     # disallow_encodings
     # allow_directives
@@ -344,7 +346,7 @@ sub _decode_expr {
 
 sub _err {
     my ($self, $msg) = @_;
-    die join(
+    croak join(
         "",
         @{ $self->{_include_stack} } ? "$self->{_include_stack}[0] " : "",
         "line $self->{_linum}: ",
@@ -529,6 +531,11 @@ config file and force user to use JSON encoding or bracket to specify array:
 
  [section]
  a=[1,2]
+
+=head2 ignore_unknown_encoding => bool (default: 0)
+
+If set to true, will not die if an unknown directive is encountered. It will
+simply be ignored as a regular comment.
 
 =for END_BLOCK: attributes
 

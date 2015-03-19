@@ -181,6 +181,16 @@ _
     );
 };
 
+subtest "opt: ignore_unknown_directive=1" => sub {
+    test_read_iod(
+        args  => {ignore_unknown_directive=>1},
+        input => <<'_',
+;!foo bar
+_
+        result => {},
+    );
+};
+
 # temporarily placed here
 subtest "expr" => sub {
     test_read_iod(
