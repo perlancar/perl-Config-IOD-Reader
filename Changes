@@ -1,5 +1,11 @@
 Revision history for Config-IOD-Reader
 
+0.13    2015-03-19 (PERLANCAR)
+
+	- Extract t/01-basics.t to module Test::Config::IOD::Common so it's
+	  reusable by Config::IOD.
+
+
 0.12    2015-03-19 (PERLANCAR)
 
 	- No functional changes.
