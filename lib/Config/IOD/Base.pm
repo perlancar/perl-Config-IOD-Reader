@@ -377,7 +377,8 @@ sub _push_include_stack {
 sub _pop_include_stack {
     my $self = shift;
 
-    die "BUG: Overpopped _pop_include_stack" unless @{$self->{_include_stack}};
+    croak "BUG: Overpopped _pop_include_stack"
+        unless @{$self->{_include_stack}};
     pop @{ $self->{_include_stack} };
 }
 
@@ -390,7 +391,7 @@ sub _init_read {
 sub _read_file {
     my ($self, $filename) = @_;
     open my $fh, "<", $filename
-        or die "Can't open file '$filename': $!";
+        or croak "Can't open file '$filename': $!";
     binmode($fh, ":utf8");
     local $/;
     return ~~<$fh>;
@@ -400,7 +401,7 @@ sub read_file {
     my ($self, $filename) = @_;
     $self->_init_read;
     my $res = $self->_push_include_stack($filename);
-    die "Can't read '$filename': $res->[1]" unless $res->[0] == 200;
+    croak "Can't read '$filename': $res->[1]" unless $res->[0] == 200;
     $res =
         $self->_read_string($self->_read_file($filename));
     $self->_pop_include_stack;
