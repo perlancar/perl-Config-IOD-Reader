@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-use Benchmark qw(cmpthese);
+use Benchmark::Dumb qw(cmpthese);
 use Config::IOD;
 use Config::IOD::Reader;
 use File::ShareDir qw(dist_file);
@@ -20,7 +20,7 @@ my $content_typical1 = read_text($path_typical1);
 my $parser = Config::IOD->new;
 my $reader = Config::IOD::Reader->new;
 
-cmpthese(-1, {
+cmpthese(0, {
     'ciod , basic   ' => sub { $parser->read_string($content_basic   ) },
     'ciod , typical1' => sub { $parser->read_string($content_typical1) },
     'ciodr, basic   ' => sub { $reader->read_string($content_basic   ) },
