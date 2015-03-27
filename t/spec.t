@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use Config::IOD::Reader;
-use File::ShareDir ':ALL';
+use File::ShareDir::Tarball qw(dist_dir);
 use Test::Exception;
 use Test::More 0.98;
 
