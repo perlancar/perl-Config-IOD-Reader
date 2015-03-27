@@ -1,5 +1,12 @@
 Revision history for Config-IOD-Reader
 
+0.15    2015-03-27 (PERLANCAR)
+
+	- No functional changes.
+
+        - Adjust to IOD::Examples 0.15 which now puts shared files in tarball.
+
+
 0.14    2015-03-20 (PERLANCAR)
 
         - [Bugfix] Revert an optimization introduced during 0.13 which caused a
