@@ -3,6 +3,8 @@
 use 5.010;
 use strict;
 use warnings;
+use FindBin '$Bin';
+use lib "$Bin/../lib";
 
 use Benchmark::Dumb qw(cmpthese);
 use Config::IOD;
