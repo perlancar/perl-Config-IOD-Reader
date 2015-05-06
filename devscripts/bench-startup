@@ -3,11 +3,12 @@
 use 5.010;
 use strict;
 use warnings;
+use FindBin '$Bin';
 
 use Benchmark::Command;
 
 Benchmark::Command::run(0, {
-    'perl'              => [$^X, "-e1"],
-    'load_ciodr'        => [$^X, "-MConfig::IOD::Reader", "-e", 1],
-    'read_empty_iod'    => [$^X, "-MConfig::IOD::Reader", "-e", '$reader = Config::IOD::Reader->new; $res = $reader->read_string("")'],
+    'perl'              => [$^X, "-I$Bin/../lib", "-e1"],
+    'load_ciodr'        => [$^X, "-I$Bin/../lib", "-MConfig::IOD::Reader", "-e", 1],
+    'read_empty_iod'    => [$^X, "-I$Bin/../lib", "-MConfig::IOD::Reader", "-e", '$reader = Config::IOD::Reader->new; $res = $reader->read_string("")'],
 });
