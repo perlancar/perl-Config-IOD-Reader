@@ -362,9 +362,9 @@ sub _push_include_stack {
     # included file's path is based on the main (topmost) file
     if (@{ $self->{_include_stack} }) {
         require File::Spec;
-        my (undef, $dir, $file) =
+        my ($vol, $dir, $file) =
             File::Spec->splitpath($self->{_include_stack}[-1]);
-        $path = File::Spec->rel2abs($path, $dir);
+        $path = File::Spec->rel2abs($path, File::Spec->catpath($vol, $dir));
     }
 
     my $abs_path = Cwd::abs_path($path) or return [400, "Invalid path name"];
