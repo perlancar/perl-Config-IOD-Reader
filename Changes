@@ -1,5 +1,13 @@
 Revision history for Config-IOD-Reader
 
+0.17    2015-06-07 (PERLANCAR)
+
+	- Patch to account for Windows/filesystem with volume [RT#104982]
+	  (thanks kmx).
+
+	- Make sure bench scripts uses dev (lib/) version.
+
+
 0.16    2015-05-05 (PERLANCAR)
 
 	- No functional changes.
