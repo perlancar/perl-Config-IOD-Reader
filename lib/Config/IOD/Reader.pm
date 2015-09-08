@@ -176,7 +176,7 @@ sub _read_string {
 }
 
 1;
-#ABSTRACT: Read IOD configuration files
+#ABSTRACT: Read IOD/INI configuration files
 
 =head1 SYNOPSIS
 
@@ -200,9 +200,11 @@ sub _read_string {
 
 =head1 DESCRIPTION
 
-This module reads L<IOD> configuration files. It is a minimalist alternative to
-the more fully-featured L<Config::IOD>. It cannot write IOD files and is
-optimized for low startup overhead.
+This module reads L<IOD> configuration files (IOD is an INI-like format with
+more precise specification, some extra features, and 99% compatible with typical
+INI format). It is a minimalist alternative to the more fully-featured
+L<Config::IOD>. It cannot write IOD files and is optimized for low startup
+overhead.
 
 
 =head1 EXPRESSION
