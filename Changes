@@ -1,5 +1,13 @@
 Revision history for Config-IOD-Reader
 
+0.20    2016-01-23 (PERLANCAR)
+
+	- Reader: accept an optional $callback in second argument that will
+	  be called during various stages.
+
+	- Remove bench scripts (see Bencher-Scenario-IODParsing now).
+
+
 0.19    2015-09-08 (PERLANCAR)
 
 	- No functional changes.
