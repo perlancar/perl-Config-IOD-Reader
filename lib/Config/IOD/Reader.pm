@@ -44,7 +44,7 @@ sub _init_read {
 }
 
 sub _read_string {
-    my ($self, $str) = @_;
+    my ($self, $str, $cb) = @_;
 
     my $res = $self->{_res};
     my $cur_section = $self->{_cur_section};
@@ -52,6 +52,8 @@ sub _read_string {
     my $directive_re = $self->{allow_bang_only} ?
         qr/^;?\s*!\s*(\w+)\s*/ :
         qr/^;\s*!\s*(\w+)\s*/;
+
+    my $_raw_val; # only to provide to callback
 
     my @lines = split /^/, $str;
     local $self->{_linum} = 0;
@@ -83,6 +85,16 @@ sub _read_string {
             if (!defined($args)) {
                 $self->_err("Invalid arguments syntax '$line'");
             }
+
+            if ($cb) {
+                $cb->(
+                    event => 'directive',
+                    linum=>$self->{_linum}, line=>$line, cur_section=>$self->{_cur_section},
+                    directive => $directive,
+                    args => $args,
+                );
+            }
+
             if ($directive eq 'include') {
                 my $path;
                 if (! @$args) {
@@ -97,7 +109,7 @@ sub _read_string {
                     $self->_err("Can't include '$path': $res->[1]");
                 }
                 $path = $res->[2];
-                $self->_read_string($self->_read_file($path));
+                $self->_read_string($self->_read_file($path, $cb));
                 $self->_pop_include_stack;
             } elsif ($directive eq 'merge') {
                 $self->{_merge} = @$args ? $args : undef;
@@ -115,6 +127,14 @@ sub _read_string {
 
         # comment line
         if ($line =~ /^\s*[;#]/) {
+
+            if ($cb) {
+                $cb->(
+                    event => 'comment',
+                    linum=>$self->{_linum}, line=>$line, cur_section=>$self->{_cur_section},
+                );
+            }
+
             next LINE;
         }
 
@@ -130,6 +150,14 @@ sub _read_string {
                 $self->_merge($prev_section);
             }
 
+            if ($cb) {
+                $cb->(
+                    event => 'section',
+                    linum=>$self->{_linum}, line=>$line, cur_section=>$self->{_cur_section},
+                    section => $cur_section,
+                );
+            }
+
             next LINE;
         }
 
@@ -142,10 +170,12 @@ sub _read_string {
             # quoted/bracketed/braced, so we avoid calling _parse_raw_value here
             # to avoid overhead
             if ($val =~ /\A["!\\[\{]/) {
+                $_raw_val = $val if $cb;
                 my ($err, $parse_res, $decoded_val) = $self->_parse_raw_value($val);
                 $self->_err("Invalid value: " . $err) if $err;
                 $val = $decoded_val;
             } else {
+                $_raw_val = $val if $cb;
                 $val =~ s/\s*[#;].*//; # strip comment
             }
 
@@ -160,6 +190,16 @@ sub _read_string {
                 }
             } else {
                 $res->{$cur_section}{$key} = $val;
+            }
+
+            if ($cb) {
+                $cb->(
+                    event => 'key',
+                    linum=>$self->{_linum}, line=>$line, cur_section=>$self->{_cur_section},
+                    key => $key,
+                    val => $val,
+                    raw_val => $_raw_val,
+                );
             }
 
             next LINE;
@@ -221,13 +261,47 @@ overhead.
 
 =head2 new(%attrs) => obj
 
-=head2 $reader->read_file($filename) => hash
+=head2 $reader->read_file($filename[ , $callback ]) => hash
 
 Read IOD configuration from a file. Die on errors.
 
-=head2 $reader->read_string($str) => hash
+See C<read_string> for more information on C<$callback> argument.
+
+=head2 $reader->read_string($str[ , $callback ]) => hash
 
 Read IOD configuration from a string. Die on errors.
+
+C<$callback> is an optional coderef argument that will be called during various
+stages. It can be useful if you want more information (especially ordering). It
+will be called with hash argument C<%args>
+
+=over
+
+=item * Found a directive line
+
+Arguments passed: C<event> (str, has the value of 'directive'), C<linum> (int,
+line number, starts from 1), C<line> (str, raw line), C<directive> (str,
+directive name), C<cur_section> (str, current section name), C<args> (array,
+directive arguments).
+
+=item * Found a comment line
+
+Arguments passed: C<event> (str, 'comment'), C<linum>, C<line>, C<cur_section>.
+
+=item * Found a section line
+
+Arguments passed: C<event> (str, 'section'), C<linum>, C<line>, C<cur_section>,
+C<section> (str, section name).
+
+=item * Found a key line
+
+Arguments passed: C<event> (str, 'section'), C<linum>, C<line>, C<cur_section>,
+C<key> (str, key name), C<val> (any, value name, already decoded if encoded),
+C<raw_val> (str, raw value).
+
+=back
+
+TODO: callback when there is merging.
 
 
 =head1 SEE ALSO

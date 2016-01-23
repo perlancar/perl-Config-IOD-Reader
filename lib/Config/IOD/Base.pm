@@ -398,20 +398,21 @@ sub _read_file {
 }
 
 sub read_file {
-    my ($self, $filename) = @_;
+    my $self = shift;
+    my $filename = shift;
     $self->_init_read;
     my $res = $self->_push_include_stack($filename);
     die "Can't read '$filename': $res->[1]" unless $res->[0] == 200;
     $res =
-        $self->_read_string($self->_read_file($filename));
+        $self->_read_string($self->_read_file($filename), @_);
     $self->_pop_include_stack;
     $res;
 }
 
 sub read_string {
-    my ($self, $str) = @_;
+    my $self = shift;
     $self->_init_read;
-    $self->_read_string($str);
+    $self->_read_string(@_);
 }
 
 1;
