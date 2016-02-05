@@ -108,8 +108,6 @@ sub _parse_command_line {
 
 # return ($err, $res, $decoded_val)
 sub _parse_raw_value {
-    no warnings; # XXX no warnings 'experimental::smartmatch', but this is unrecognized in 5.10
-
     my ($self, $val, $needs_res) = @_;
 
     if ($val =~ /\A!/ && $self->{enable_encoding}) {
@@ -125,12 +123,12 @@ sub _parse_raw_value {
         if ($self->{allow_encodings}) {
             return ("Encoding '$enc' is not in ".
                         "allow_encodings list")
-                unless $enc ~~ @{$self->{allow_encodings}};
+                unless grep {$_ eq $enc} @{$self->{allow_encodings}};
         }
         if ($self->{disallow_encodings}) {
             return ("Encoding '$enc' is in ".
                         "disallow_encodings list")
-                if $enc ~~ @{$self->{disallow_encodings}};
+                if grep {$_ eq $enc} @{$self->{disallow_encodings}};
         }
 
         if ($enc eq 'json') {
@@ -394,7 +392,7 @@ sub _read_file {
         or die "Can't open file '$filename': $!";
     binmode($fh, ":utf8");
     local $/;
-    return ~~<$fh>;
+    return scalar <$fh>;
 }
 
 sub read_file {
