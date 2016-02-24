@@ -115,6 +115,15 @@ sub _parse_raw_value {
         $val =~ s/!(\w+)(\s+)// or return ("Invalid syntax in encoded value");
         my ($enc, $ws1) = ($1, $2);
 
+        my $res = [
+            "!$enc", # COL_V_ENCODING
+            $ws1, # COL_V_WS1
+            $1, # COL_V_VALUE
+            $2, # COL_V_WS2
+            $3, # COL_V_COMMENT_CHAR
+            $4, # COL_V_COMMENT
+        ] if $needs_res;
+
         # canonicalize shorthands
         $enc = "json" if $enc eq 'j';
         $enc = "hex"  if $enc eq 'h';
@@ -132,6 +141,7 @@ sub _parse_raw_value {
         }
 
         if ($enc eq 'json') {
+
             # XXX imperfect regex for simplicity, comment should not contain
             # "]", '"', or '}' or it will be gobbled up as value by greedy regex
             # quantifier
@@ -140,52 +150,50 @@ sub _parse_raw_value {
                      (\s*)
                      (?: ([;#])(.*) )?
                      \z/x or return ("Invalid syntax in JSON-encoded value");
-            my $res = [
-                "!$enc", # COL_V_ENCODING
-                $ws1, # COL_V_WS1
-                $1, # COL_V_VALUE
-                $2, # COL_V_WS2
-                $3, # COL_V_COMMENT_CHAR
-                $4, # COL_V_COMMENT
-            ] if $needs_res;
             my $decode_res = $self->_decode_json($val);
             return ($decode_res->[1]) unless $decode_res->[0] == 200;
             return (undef, $res, $decode_res->[2]);
+
         } elsif ($enc eq 'hex') {
+
             $val =~ /\A
                      ([0-9A-Fa-f]*)
                      (\s*)
                      (?: ([;#])(.*) )?
                      \z/x or return ("Invalid syntax in hex-encoded value");
-            my $res = [
-                "!$enc", # COL_V_ENCODING
-                $ws1, # COL_V_WS1
-                $1, # COL_V_VALUE
-                $2, # COL_V_WS2
-                $3, # COL_V_COMMENT_CHAR
-                $4, # COL_V_COMMENT
-            ] if $needs_res;
             my $decode_res = $self->_decode_hex($1);
             return ($decode_res->[1]) unless $decode_res->[0] == 200;
             return (undef, $res, $decode_res->[2]);
+
         } elsif ($enc eq 'base64') {
+
             $val =~ m!\A
                       ([A-Za-z0-9+/]*=*)
                       (\s*)
                       (?: ([;#])(.*) )?
                       \z!x or return ("Invalid syntax in base64-encoded value");
-            my $res = [
-                "!$enc", # COL_V_ENCODING
-                $ws1, # COL_V_WS1
-                $1, # COL_V_VALUE
-                $2, # COL_V_WS2
-                $3, # COL_V_COMMENT_CHAR
-                $4, # COL_V_COMMENT
-            ] if $needs_res;
             my $decode_res = $self->_decode_base64($1);
             return ($decode_res->[1]) unless $decode_res->[0] == 200;
             return (undef, $res, $decode_res->[2]);
+
+        } elsif ($enc eq 'path' || $enc eq 'paths') {
+
+            if ($val =~ m!\A~([^/]+)?(?:/|\z)!) {
+                no warnings 'uninitialized';
+                my @pw = $1 ? getpwnam($1) : getpwuid($>);
+                return ("Unknown user '$1' in path") unless @pw;
+                $val =~ s!\A~([^/]+)?!$pw[7]!;
+            }
+            $val =~ s!(?<=.)/\z!!;
+
+            if ($enc eq 'path') {
+                return (undef, $res, $val);
+            } else {
+                return (undef, $res, [glob $val]);
+            }
+
         } elsif ($enc eq 'expr') {
+
             return ("expr is not allowed (enable_expr=0)")
                 unless $self->{enable_expr};
             # XXX imperfect regex, expression can't contain # and ; because it
@@ -195,19 +203,14 @@ sub _parse_raw_value {
                       (\s*)
                       (?: ([;#])(.*) )?
                       \z!x or return ("Invalid syntax in expr-encoded value");
-            my $res = [
-                "!$enc", # COL_V_ENCODING
-                $ws1, # COL_V_WS1
-                $1, # COL_V_VALUE
-                $2, # COL_V_WS2
-                $3, # COL_V_COMMENT_CHAR
-                $4, # COL_V_COMMENT
-            ] if $needs_res;
             my $decode_res = $self->_decode_expr($1);
             return ($decode_res->[1]) unless $decode_res->[0] == 200;
             return (undef, $res, $decode_res->[2]);
+
         } else {
+
             return ("unknown encoding '$enc'");
+
         }
 
     } elsif ($val =~ /\A"/ && $self->{enable_quoting}) {
