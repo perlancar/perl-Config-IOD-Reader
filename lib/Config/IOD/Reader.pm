@@ -235,6 +235,7 @@ sub _read_string {
      # allow_bang_only     => 1,
      # enable_expr         => 0,
      # allow_duplicate_key => 1,
+     # ignore_unknown_directive => 0,
  );
  my $config_hash = $reader->read_file('config.iod');
 
