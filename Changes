@@ -1,5 +1,12 @@
 Revision history for Config-IOD-Reader
 
+0.23    2016-03-01 (PERLANCAR)
+
+	- No functional changes.
+
+	- Update Synopsis.
+
+
 0.22    2016-02-24 (PERLANCAR)
 
 	- Implement encodings !path & !paths (new in IOD 0.9.10).
