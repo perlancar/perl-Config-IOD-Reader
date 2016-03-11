@@ -1,5 +1,10 @@
 Revision history for Config-IOD-Reader
 
+0.24    2016-03-11 (PERLANCAR)
+
+	- Replace JSON with JSON::MaybeXS.
+
+
 0.23    2016-03-01 (PERLANCAR)
 
 	- No functional changes.
