@@ -1,5 +1,12 @@
 Revision history for Config-IOD-Reader
 
+0.25    2016-09-25 (PERLANCAR)
+
+	- Revert from using JSON::MaybeXS to JSON because JSON::MaybeXS is
+	  currently not depakable (hard dependency to XS module
+	  Cpanel::JSON::XS).
+
+
 0.24    2016-03-11 (PERLANCAR)
 
 	- Replace JSON with JSON::MaybeXS.
