@@ -1,5 +1,11 @@
 Revision history for Config-IOD-Reader
 
+0.28    2016-10-07 (PERLANCAR)
+
+	- For now, skip the whole t/encoding_path.t on Windows, because
+	  File::HomeDir->users_home() is not implemented on Windows.
+
+
 0.27    2016-10-07 (PERLANCAR)
 
         - Derp, forgot to replace usage of getpwuid() in lib/, only in t/.
