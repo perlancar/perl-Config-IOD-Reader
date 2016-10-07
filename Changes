@@ -1,5 +1,11 @@
 Revision history for Config-IOD-Reader
 
+0.26    2016-10-07 (PERLANCAR)
+
+        - Replace getpwuid() with checking USERNAME/USER and
+          PERLANCAR::File::HomeDir, to make it work on Windows [GH#1].
+
+
 0.25    2016-09-25 (PERLANCAR)
 
 	- Revert from using JSON::MaybeXS to JSON because JSON::MaybeXS is
