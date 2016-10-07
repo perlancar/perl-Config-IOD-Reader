@@ -1,5 +1,14 @@
 Revision history for Config-IOD-Reader
 
+0.27    2016-10-07 (PERLANCAR)
+
+        - Derp, forgot to replace usage of getpwuid() in lib/, only in t/.
+
+        - Replace PERLANCAR::File::HomeDir with File::HomeDir for now, as
+          PERLANCAR::File::HomeDir currently cannot return other user's home
+          directory.
+
+
 0.26    2016-10-07 (PERLANCAR)
 
         - Replace getpwuid() with checking USERNAME/USER and

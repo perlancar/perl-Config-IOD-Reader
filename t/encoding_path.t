@@ -7,7 +7,7 @@ use warnings;
 use Config::IOD::Reader;
 #use File::Slurper qw(write_text);
 use File::Temp qw(tempdir);
-use PERLANCAR::File::HomeDir qw(get_my_home_dir);
+use File::HomeDir;
 use Test::More 0.98;
 
 sub _create_file { open my($fh), ">", $_[0] }
@@ -18,7 +18,7 @@ _create_file("$tempdir/f2", "");
 _create_file("$tempdir/g1", "");
 
 my $username = $ENV{USERNAME} // $ENV{USER};
-my $homedir  = get_my_home_dir();
+my $homedir  = File::HomeDir->my_home;
 
 my $res = Config::IOD::Reader->new->read_string(<<EOF);
 [without_encoding]
