@@ -3,12 +3,18 @@
 use 5.010;
 use strict;
 use warnings;
+use Test::More 0.98;
+
+use File::HomeDir;
+
+BEGIN {
+    plan skip_all => "File::HomeDir->users_home() is not implemented on Windows"
+        unless eval { File::HomeDir->users_home("root") };
+}
 
 use Config::IOD::Reader;
 #use File::Slurper qw(write_text);
 use File::Temp qw(tempdir);
-use File::HomeDir;
-use Test::More 0.98;
 
 sub _create_file { open my($fh), ">", $_[0] }
 
