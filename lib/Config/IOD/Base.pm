@@ -179,10 +179,11 @@ sub _parse_raw_value {
         } elsif ($enc eq 'path' || $enc eq 'paths') {
 
             if ($val =~ m!\A~([^/]+)?(?:/|\z)!) {
-                no warnings 'uninitialized';
-                my @pw = $1 ? getpwnam($1) : getpwuid($>);
-                return ("Unknown user '$1' in path") unless @pw;
-                $val =~ s!\A~([^/]+)?!$pw[7]!;
+                require File::HomeDir;
+                my $home_dir = defined($1) ?
+                    File::HomeDir->users_home($1) : File::HomeDir->my_home;
+                return ("Unknown user '$1' in path") unless $home_dir;
+                $val =~ s!\A~([^/]+)?!$home_dir!;
             }
             $val =~ s!(?<=.)/\z!!;
 
