@@ -307,8 +307,12 @@ sub _parse_raw_value {
 sub _decode_json {
     my ($self, $val) = @_;
     state $json = do {
-        require JSON;
-        JSON->new->allow_nonref;
+        if (eval { require Cpanel::JSON::XS; 1 }) {
+            Cpanel::JSON::XS->new->allow_nonref;
+        } else {
+            require JSON::PP;
+            JSON::PP->new->allow_nonref;
+        }
     };
     my $res;
     eval { $res = $json->decode($val) };
