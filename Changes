@@ -1,5 +1,11 @@
 Revision history for Config-IOD-Reader
 
+0.29    2017-01-04 (PERLANCAR)
+
+	- Replace JSON with Cpanel::JSON::XS (recommends) + JSON::PP
+	  (requires, fallback), to reduce deps.
+
+
 0.28    2016-10-07 (PERLANCAR)
 
 	- For now, skip the whole t/encoding_path.t on Windows, because
