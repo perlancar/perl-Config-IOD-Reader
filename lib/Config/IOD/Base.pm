@@ -304,6 +304,50 @@ sub _parse_raw_value {
     # should not be reached
 }
 
+# borrowed from PERLANCAR::File::HomeDir 0.04
+sub _get_my_home_dir {
+    if ($^O eq 'MSWin32') {
+        # File::HomeDir always uses exists($ENV{x}) first, does it want to avoid
+        # accidentally creating env vars?
+        return $ENV{HOME} if $ENV{HOME};
+        return $ENV{USERPROFILE} if $ENV{USERPROFILE};
+        return join($ENV{HOMEDRIVE}, "\\", $ENV{HOMEPATH})
+            if $ENV{HOMEDRIVE} && $ENV{HOMEPATH};
+    } else {
+        return $ENV{HOME} if $ENV{HOME};
+        my @pw;
+        eval { @pw = getpwuid($>) };
+        return $pw[7] if @pw;
+    }
+
+    die "Can't get home directory";
+}
+
+# borrowed from PERLANCAR::File::HomeDir 0.05, with some modifications
+sub _get_users_home_dir {
+    my ($name) = @_;
+
+    if ($^O eq 'MSWin32') {
+        # not yet implemented
+        return undef;
+    } else {
+        # IF and only if we have getpwuid support, and the name of the user is
+        # our own, shortcut to my_home. This is needed to handle HOME
+        # environment settings.
+        if ($name eq getpwuid($<)) {
+            return get_my_home_dir();
+        }
+
+      SCOPE: {
+            my $home = (getpwnam($name))[7];
+            return $home if $home and -d $home;
+        }
+
+        return undef;
+    }
+
+}
+
 sub _decode_json {
     my ($self, $val) = @_;
     state $json = do {
