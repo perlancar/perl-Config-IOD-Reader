@@ -1,5 +1,12 @@
 Revision history for Config-IOD-Reader
 
+0.30    2017-01-05 (PERLANCAR)
+
+        - Replace the use of File::HomeDir with copied routine from
+          PERLANCAR::File::HomeDir to reduce deps. Now we don't depend on any
+          non-core modules.
+
+
 0.29    2017-01-04 (PERLANCAR)
 
 	- Replace JSON with Cpanel::JSON::XS (recommends) + JSON::PP
