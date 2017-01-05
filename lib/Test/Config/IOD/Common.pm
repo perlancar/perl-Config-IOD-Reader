@@ -7,14 +7,13 @@ use 5.010;
 use strict;
 use warnings;
 
-use Module::Load;
 use Test::More 0.98;
 
 our $CLASS = "Config::IOD::Reader";
 
 sub test_common_iod {
 
-    load $CLASS;
+    eval "require $CLASS"; die if $@;
 
     subtest "opt: default_section" => sub {
         test_read_iod(
@@ -269,4 +268,3 @@ sub test_read_iod {
 # ABSTRACT: Common tests for Config::IOD and Config::IOD::Reader
 
 =for Pod::Coverage .+
-
