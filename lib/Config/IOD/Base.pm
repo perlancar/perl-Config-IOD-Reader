@@ -179,10 +179,15 @@ sub _parse_raw_value {
         } elsif ($enc eq 'path' || $enc eq 'paths') {
 
             if ($val =~ m!\A~([^/]+)?(?:/|\z)!) {
-                require File::HomeDir;
-                my $home_dir = defined($1) ?
-                    File::HomeDir->users_home($1) : File::HomeDir->my_home;
-                return ("Unknown user '$1' in path") unless $home_dir;
+                my $home_dir = length($1) ?
+                    _get_users_home_dir($1) : _get_my_home_dir();
+                unless ($home_dir) {
+                    if (length $1) {
+                        return "Can't get home directory for user '$1' in path";
+                    } else {
+                        return "Can't get home directory for current user in path";
+                    }
+                }
                 $val =~ s!\A~([^/]+)?!$home_dir!;
             }
             $val =~ s!(?<=.)/\z!!;
@@ -335,7 +340,7 @@ sub _get_users_home_dir {
         # our own, shortcut to my_home. This is needed to handle HOME
         # environment settings.
         if ($name eq getpwuid($<)) {
-            return get_my_home_dir();
+            return _get_my_home_dir();
         }
 
       SCOPE: {

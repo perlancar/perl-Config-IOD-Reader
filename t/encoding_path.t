@@ -5,11 +5,11 @@ use strict;
 use warnings;
 use Test::More 0.98;
 
-use File::HomeDir;
-
 BEGIN {
-    plan skip_all => "File::HomeDir->users_home() is not implemented on Windows"
-        unless eval { File::HomeDir->users_home("root") };
+    plan skip_all => "getting user's home dir not yet implemented on Windows"
+        if $^O eq 'MSWin32';
+    plan skip_all => "HOME not defined"
+        unless $ENV{HOME};
 }
 
 use Config::IOD::Reader;
@@ -24,7 +24,7 @@ _create_file("$tempdir/f2", "");
 _create_file("$tempdir/g1", "");
 
 my $username = $ENV{USERNAME} // $ENV{USER};
-my $homedir  = File::HomeDir->my_home;
+my $homedir  = $ENV{HOME};
 
 my $res = Config::IOD::Reader->new->read_string(<<EOF);
 [without_encoding]
