@@ -1,5 +1,3 @@
-Revision history for Config-IOD-Reader
-
 0.30    2017-01-05 (PERLANCAR)
 
         - Replace the use of File::HomeDir with copied routine from
