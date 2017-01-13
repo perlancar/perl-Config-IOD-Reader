@@ -1,3 +1,8 @@
+0.31    2017-01-13 (PERLANCAR)
+
+	- Implement IOD 0.9.11 !none encoding and implicit !path encoding.
+
+
 0.30    2017-01-05 (PERLANCAR)
 
         - Replace the use of File::HomeDir with copied routine from
