@@ -9,7 +9,7 @@ use warnings;
 #use Carp; # avoided to shave a bit of startup time
 
 use constant +{
-    COL_V_ENCODING => 0, # either "!j" or '"', '[', '{'
+    COL_V_ENCODING => 0, # either "!j"... or '"', '[', '{', '~'
     COL_V_WS1 => 1,
     COL_V_VALUE => 2,
     COL_V_WS2 => 3,
@@ -26,6 +26,7 @@ sub new {
     $attrs{enable_quoting}  //= 1;
     $attrs{enable_bracket}  //= 1;
     $attrs{enable_brace}    //= 1;
+    $attrs{enable_tilde}    //= 1;
     $attrs{enable_expr}     //= 0;
     $attrs{ignore_unknown_directive} //= 0;
     # allow_encodings
@@ -154,6 +155,12 @@ sub _parse_raw_value {
             return ($decode_res->[1]) unless $decode_res->[0] == 200;
             return (undef, $res, $decode_res->[2]);
 
+        } elsif ($enc eq 'path' || $enc eq 'paths') {
+
+            my $decode_res = $self->_decode_path_or_paths($val, $enc);
+            return ($decode_res->[1]) unless $decode_res->[0] == 200;
+            return (undef, $res, $decode_res->[2]);
+
         } elsif ($enc eq 'hex') {
 
             $val =~ /\A
@@ -176,27 +183,9 @@ sub _parse_raw_value {
             return ($decode_res->[1]) unless $decode_res->[0] == 200;
             return (undef, $res, $decode_res->[2]);
 
-        } elsif ($enc eq 'path' || $enc eq 'paths') {
+        } elsif ($enc eq 'none') {
 
-            if ($val =~ m!\A~([^/]+)?(?:/|\z)!) {
-                my $home_dir = length($1) ?
-                    _get_users_home_dir($1) : _get_my_home_dir();
-                unless ($home_dir) {
-                    if (length $1) {
-                        return "Can't get home directory for user '$1' in path";
-                    } else {
-                        return "Can't get home directory for current user in path";
-                    }
-                }
-                $val =~ s!\A~([^/]+)?!$home_dir!;
-            }
-            $val =~ s!(?<=.)/\z!!;
-
-            if ($enc eq 'path') {
-                return (undef, $res, $val);
-            } else {
-                return (undef, $res, [glob $val]);
-            }
+            return (undef, $res, $val);
 
         } elsif ($enc eq 'expr') {
 
@@ -288,6 +277,26 @@ sub _parse_raw_value {
         return ($decode_res->[1]) unless $decode_res->[0] == 200;
         return (undef, $res, $decode_res->[2]);
 
+    } elsif ($val =~ /\A~/ && $self->{enable_tilde}) {
+
+        $val =~ /\A
+                 ~(.*)
+                 (\s*)
+                 (?: ([;#])(.*) )?
+                 \z/x or return ("Invalid syntax in path value");
+        my $res = [
+            '~', # COL_V_ENCODING
+            '', # COL_V_WS1
+            $1, # VOL_V_VALUE
+            $2, # COL_V_WS2
+            $3, # COL_V_COMMENT_CHAR
+            $4, # COL_V_COMMENT
+        ] if $needs_res;
+
+        my $decode_res = $self->_decode_path_or_paths($val, 'path');
+        return ($decode_res->[1]) unless $decode_res->[0] == 200;
+        return (undef, $res, $decode_res->[2]);
+
     } else {
 
         $val =~ /\A
@@ -369,6 +378,30 @@ sub _decode_json {
         return [500, "Invalid JSON: $@"];
     } else {
         return [200, "OK", $res];
+    }
+}
+
+sub _decode_path_or_paths {
+    my ($self, $val, $which) = @_;
+
+    if ($val =~ m!\A~([^/]+)?(?:/|\z)!) {
+        my $home_dir = length($1) ?
+            _get_users_home_dir($1) : _get_my_home_dir();
+        unless ($home_dir) {
+            if (length $1) {
+                return [500, "Can't get home directory for user '$1' in path"];
+            } else {
+                return [500, "Can't get home directory for current user in path"];
+            }
+        }
+        $val =~ s!\A~([^/]+)?!$home_dir!;
+    }
+    $val =~ s!(?<=.)/\z!!;
+
+    if ($which eq 'path') {
+        return [200, "OK", $val];
+    } else {
+        return [200, "OK", [glob $val]];
     }
 }
 
@@ -492,6 +525,8 @@ parsed as verbatim. Example:
 With C<enable_encoding> turned off, value will not be undef but will be string
 with the value of (as Perl literal) C<"!json null">.
 
+Turning off this setting will violate IOD.
+
 =head2 enable_quoting => bool (default: 1)
 
 If set to false, then quotes on key value will be ignored and key value will be
@@ -502,6 +537,8 @@ parsed as verbatim. Example:
 With C<enable_quoting> turned off, value will not be a two-line string, but will
 be a one line string with the value of (as Perl literal) C<"line 1\\nline2">.
 
+I<Turning off this setting will violate IOD.>
+
 =head2 enable_bracket => bool (default: 1)
 
 If set to false, then JSON literal array will be parsed as verbatim. Example:
@@ -510,6 +547,8 @@ If set to false, then JSON literal array will be parsed as verbatim. Example:
 
 With C<enable_bracket> turned off, value will not be a three-element array, but
 will be a string with the value of (as Perl literal) C<"[1,2,3]">.
+
+I<Turning off this setting will violate IOD.>
 
 =head2 enable_brace => bool (default: 1)
 
@@ -520,6 +559,22 @@ Example:
 
 With C<enable_brace> turned off, value will not be a hash with two pairs, but
 will be a string with the value of (as Perl literal) C<'{"a":1,"b":2}'>.
+
+I<Turning off this setting will violate IOD.>
+
+=head2 enable_tilde => bool (default: 1)
+
+If set to true (the default), then value that starts with C<~> (tilde) will be
+assumed to use !path encoding, unless an explicit encoding has been otherwise
+specified.
+
+Example:
+
+ log_dir = ~/logs  ; ~ will be resolved to current user's home directory
+
+With C<enable_tilde> turned off, value will still be literally C<~/logs>.
+
+I<Turning off this setting will violate IOD.>
 
 =head2 allow_encodings => array
 
@@ -589,10 +644,14 @@ config file and force user to use JSON encoding or bracket to specify array:
  [section]
  a=[1,2]
 
+I<Turning off this setting will violate IOD.>
+
 =head2 ignore_unknown_directive => bool (default: 0)
 
 If set to true, will not die if an unknown directive is encountered. It will
 simply be ignored as a regular comment.
+
+I<Turning on this setting will violate IOD.>
 
 =for END_BLOCK: attributes
 

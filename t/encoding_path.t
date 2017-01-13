@@ -27,17 +27,17 @@ my $username = $ENV{USERNAME} // $ENV{USER};
 my $homedir  = $ENV{HOME};
 
 my $res = Config::IOD::Reader->new->read_string(<<EOF);
-[without_encoding]
-home_dir  = ~
-home_dir2 = ~$username/
+[without_path_encoding]
+home_dir  = "~"
+home_dir2 = !none ~$username/
 param3 = foo~
 
 dirs      = $tempdir/f*
 dirs2     = $tempdir/g*
 dirs3     = $tempdir/h*
 
-[with_encoding]
-home_dir  = !path ~
+[with_path_encoding]
+home_dir  = ~
 home_dir2 = !path ~$username/
 param3 = foo~
 
@@ -47,7 +47,7 @@ dirs3     = !paths $tempdir/h*
 EOF
 
 is_deeply($res, {
-    without_encoding => {
+    without_path_encoding => {
         home_dir  => "~",
         home_dir2 => "~$username/",
         param3    => 'foo~',
@@ -55,7 +55,7 @@ is_deeply($res, {
         dirs2     => "$tempdir/g*",
         dirs3     => "$tempdir/h*",
     },
-    with_encoding => {
+    with_path_encoding => {
         home_dir  => "$homedir",
         home_dir2 => "$homedir",
         param3    => 'foo~',

@@ -169,7 +169,7 @@ sub _read_string {
             # the common case is that value are not decoded or
             # quoted/bracketed/braced, so we avoid calling _parse_raw_value here
             # to avoid overhead
-            if ($val =~ /\A["!\\[\{]/) {
+            if ($val =~ /\A["!\\[\{~]/) {
                 $_raw_val = $val if $cb;
                 my ($err, $parse_res, $decoded_val) = $self->_parse_raw_value($val);
                 $self->_err("Invalid value: " . $err) if $err;
