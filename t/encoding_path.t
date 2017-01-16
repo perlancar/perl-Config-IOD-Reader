@@ -23,8 +23,8 @@ _create_file("$tempdir/f1", "");
 _create_file("$tempdir/f2", "");
 _create_file("$tempdir/g1", "");
 
-my $username = $ENV{USERNAME} // $ENV{USER};
-my $homedir  = $ENV{HOME};
+my $username = Config::IOD::Base::_get_my_user_name();
+my $homedir  = Config::IOD::Base::_get_my_home_dir();
 
 my $res = Config::IOD::Reader->new->read_string(<<EOF);
 [without_path_encoding]

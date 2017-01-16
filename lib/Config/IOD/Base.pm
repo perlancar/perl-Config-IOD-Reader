@@ -318,6 +318,17 @@ sub _parse_raw_value {
     # should not be reached
 }
 
+sub _get_my_user_name {
+    if ($^O eq 'MSWin32') {
+        return $ENV{USERNAME};
+    } else {
+        return $ENV{USER} if $ENV{USER};
+        my @pw;
+        eval { @pw = getpwuid($>) };
+        return $pw[0] if @pw;
+    }
+}
+
 # borrowed from PERLANCAR::File::HomeDir 0.04
 sub _get_my_home_dir {
     if ($^O eq 'MSWin32') {
