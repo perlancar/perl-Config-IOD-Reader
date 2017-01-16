@@ -1,3 +1,10 @@
+0.32    2017-01-16 (PERLANCAR)
+
+	- No functional changes.
+
+	- Avoid test failures [CT, RT#119861].
+
+
 0.31    2017-01-13 (PERLANCAR)
 
 	- Implement IOD 0.9.11 !none encoding and implicit !path encoding.
