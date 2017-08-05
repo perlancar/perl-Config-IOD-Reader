@@ -117,7 +117,7 @@ sub _parse_raw_value {
         $val =~ s/!(\w+)(\s+)// or return ("Invalid syntax in encoded value");
         my ($enc, $ws1) = ($1, $2);
 
-        my $res = [
+        my $res; $res = [
             "!$enc", # COL_V_ENCODING
             $ws1, # COL_V_WS1
             $1, # COL_V_VALUE
@@ -220,7 +220,7 @@ sub _parse_raw_value {
                  (\s*)
                  (?: ([;#])(.*) )?
                  \z/x or return ("Invalid syntax in quoted string value");
-        my $res = [
+        my $res; $res = [
             '"', # COL_V_ENCODING
             '', # COL_V_WS1
             $1, # VOL_V_VALUE
@@ -243,7 +243,7 @@ sub _parse_raw_value {
                      ([#;])(.*)
                  )?
                  \z/x or return ("Invalid syntax in bracketed array value");
-        my $res = [
+        my $res; $res = [
             '[', # COL_V_ENCODING
             '', # COL_V_WS1
             $1, # VOL_V_VALUE
@@ -266,7 +266,7 @@ sub _parse_raw_value {
                      ([#;])(.*)
                  )?
                  \z/x or return ("Invalid syntax in braced hash value");
-        my $res = [
+        my $res; $res = [
             '{', # COL_V_ENCODING
             '', # COL_V_WS1
             $1, # VOL_V_VALUE
@@ -285,7 +285,7 @@ sub _parse_raw_value {
                  (\s*)
                  (?: ([;#])(.*) )?
                  \z/x or return ("Invalid syntax in path value");
-        my $res = [
+        my $res; $res = [
             '~', # COL_V_ENCODING
             '', # COL_V_WS1
             $1, # VOL_V_VALUE
@@ -305,7 +305,7 @@ sub _parse_raw_value {
                  (\s*)
                  (?: ([#;])(.*) )?
                  \z/x or return ("Invalid syntax in value"); # shouldn't happen, regex should match any string
-        my $res = [
+        my $res; $res = [
             '', # COL_V_ENCODING
             '', # COL_V_WS1
             $1, # VOL_V_VALUE
@@ -502,9 +502,11 @@ sub _read_file {
     my ($self, $filename) = @_;
     open my $fh, "<", $filename
         or die "Can't open file '$filename': $!";
-    binmode($fh, ":utf8");
+    binmode($fh, ":encoding(utf8)");
     local $/;
-    return scalar <$fh>;
+    my $res = scalar <$fh>;
+    close $fh;
+    $res;
 }
 
 sub read_file {
