@@ -28,6 +28,7 @@ sub new {
     $attrs{enable_brace}    //= 1;
     $attrs{enable_tilde}    //= 1;
     $attrs{enable_expr}     //= 0;
+    $attrs{expr_vars}       //= {};
     $attrs{ignore_unknown_directive} //= 0;
     # allow_encodings
     # disallow_encodings
@@ -432,7 +433,7 @@ sub _decode_expr {
 
     my ($self, $val) = @_;
     no strict 'refs';
-    local *{"Config::IOD::Expr::val"} = sub {
+    local *{"Config::IOD::Expr::_Compiled::val"} = sub {
         my $arg = shift;
         if ($arg =~ /(.+)\.(.+)/) {
             return $self->{_res}{$1}{$2};
@@ -485,6 +486,16 @@ sub _init_read {
     my $self = shift;
 
     $self->{_include_stack} = [];
+
+    # set expr variables
+    {
+        last unless $self->{enable_expr};
+        no strict 'refs';
+        my $pkg = \%{"Config::IOD::Expr::_Compiled::"};
+        undef ${"Config::IOD::Expr::_Compiled::$_"} for keys %$pkg;
+        my $vars = $self->{expr_vars};
+        ${"Config::IOD::Expr::_Compiled::$_"} = $vars->{$_} for keys %$vars;
+    }
 }
 
 sub _read_file {
@@ -704,6 +715,7 @@ The supported terms:
  number
  string (double-quoted and single-quoted)
  undef literal
+ simple variable ($abc, no namespace, no array/hash sigil, no special variables)
  function call (only the 'val' function is supported)
  grouping (parenthesis)
 
@@ -718,6 +730,9 @@ The C<val()> function refers to the configuration key. If the argument contains
 ".", it will be assumed as C<SECTIONNAME.KEYNAME>, otherwise it will access the
 current section's key. Since parsing is done in a single pass, you can only
 refer to the already mentioned key.
+
+Code will be compiled using Perl's C<eval()> in the
+C<Config::IOD::Expr::_Compiled> namespace, with C<no strict>, C<no warnings>.
 
 =for END_BLOCK: expression
 

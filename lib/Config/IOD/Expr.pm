@@ -24,6 +24,7 @@ my $EXPR_RE = qr{
   | (?&STR_SINGLE)
   | (?&STR_DOUBLE)
   | undef
+  | (?&VAR)
   | (?&FUNC)
   | \( \s* ((?&ANSWER)) \s* \)
 )
@@ -76,7 +77,7 @@ sub _parse_expr {
     my $str = shift;
 
     return [400, 'Not a valid expr'] unless $str =~ m{\A$EXPR_RE\z}o;
-    my $res = eval $str;
+    my $res = eval "package Config::IOD::Expr::_Compiled; no strict; no warnings; $str";
     return [500, "Died when evaluating expr: $@"] if $@;
     [200, "OK", $res];
 }
