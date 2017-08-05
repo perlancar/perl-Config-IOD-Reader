@@ -81,3 +81,7 @@ sub _parse_expr {
 
 1;
 # ABSTRACT: Parse expression
+
+=head1 SYNOPSIS
+
+See L<Config::IOD::Reader> on how to use expressions in your IOD file.
