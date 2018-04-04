@@ -109,7 +109,7 @@ sub _read_string {
                     $self->_err("Can't include '$path': $res->[1]");
                 }
                 $path = $res->[2];
-                $self->_read_string($self->_read_file($path, $cb));
+                $self->_read_string($self->_read_file($path, $cb), $cb);
                 $self->_pop_include_stack;
             } elsif ($directive eq 'merge') {
                 $self->{_merge} = @$args ? $args : undef;
