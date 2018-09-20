@@ -350,7 +350,7 @@ sub _get_my_home_dir {
 }
 
 # borrowed from PERLANCAR::File::HomeDir 0.05, with some modifications
-sub _get_users_home_dir {
+sub _get_user_home_dir {
     my ($name) = @_;
 
     if ($^O eq 'MSWin32') {
@@ -398,7 +398,7 @@ sub _decode_path_or_paths {
 
     if ($val =~ m!\A~([^/]+)?(?:/|\z)!) {
         my $home_dir = length($1) ?
-            _get_users_home_dir($1) : _get_my_home_dir();
+            _get_user_home_dir($1) : _get_my_home_dir();
         unless ($home_dir) {
             if (length $1) {
                 return [500, "Can't get home directory for user '$1' in path"];
