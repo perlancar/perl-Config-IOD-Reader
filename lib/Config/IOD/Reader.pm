@@ -67,7 +67,7 @@ sub _read_string {
         }
 
         # directive line
-        if ($line =~ s/$directive_re//) {
+        if ($self->{enable_directive} && $line =~ s/$directive_re//) {
             my $directive = $1;
             if ($self->{allow_directives}) {
                 $self->_err("Directive '$directive' is not in ".

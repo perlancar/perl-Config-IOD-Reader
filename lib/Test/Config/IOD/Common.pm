@@ -72,6 +72,31 @@ _
         );
     };
 
+    subtest "opt: enable_directive=0" => sub {
+        test_read_iod(
+            args  => {enable_directive=>0},
+            input => <<'_',
+[s1]
+a=1
+[s2]
+;!merge s1
+b=2
+_
+            result => {s1=>{a=>1}, s2=>{b=>2}},
+        );
+        test_read_iod(
+            args  => {enable_directive=>0},
+            input => <<'_',
+[s1]
+a=1
+[s2]
+!merge s1
+b=2
+_
+            dies => 1,
+        );
+    };
+
     subtest "opt: enable_quoting=0" => sub {
         test_read_iod(
             args  => {enable_quoting=>0},

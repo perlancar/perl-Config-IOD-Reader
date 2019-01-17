@@ -22,6 +22,7 @@ sub new {
     $attrs{default_section} //= 'GLOBAL';
     $attrs{allow_bang_only} //= 1;
     $attrs{allow_duplicate_key} //= 1;
+    $attrs{enable_directive} //= 1;
     $attrs{enable_encoding} //= 1;
     $attrs{enable_quoting}  //= 1;
     $attrs{enable_bracket}  //= 1;
@@ -539,6 +540,20 @@ sub read_string {
 If a key line is specified before any section line, this is the section that the
 key will be put in.
 
+=head2 enable_directive => bool (default: 1)
+
+If set to false, then directives will not be parsed. Lines such as below will be
+considered a regular comment:
+
+ ;!include foo.ini
+
+and lines such as below will be considered a syntax error (B<regardless> of the
+C<allow_bang_only> setting):
+
+ !include foo.ini
+
+B<NOTE: Turning this setting off violates IOD specification.>
+
 =head2 enable_encoding => bool (default: 1)
 
 If set to false, then encoding notation will be ignored and key value will be
@@ -549,7 +564,7 @@ parsed as verbatim. Example:
 With C<enable_encoding> turned off, value will not be undef but will be string
 with the value of (as Perl literal) C<"!json null">.
 
-Turning off this setting will violate IOD.
+B<NOTE: Turning this setting off violates IOD specification.>
 
 =head2 enable_quoting => bool (default: 1)
 
@@ -561,7 +576,7 @@ parsed as verbatim. Example:
 With C<enable_quoting> turned off, value will not be a two-line string, but will
 be a one line string with the value of (as Perl literal) C<"line 1\\nline2">.
 
-I<Turning off this setting will violate IOD.>
+B<NOTE: Turning this setting off violates IOD specification.>
 
 =head2 enable_bracket => bool (default: 1)
 
@@ -572,7 +587,7 @@ If set to false, then JSON literal array will be parsed as verbatim. Example:
 With C<enable_bracket> turned off, value will not be a three-element array, but
 will be a string with the value of (as Perl literal) C<"[1,2,3]">.
 
-I<Turning off this setting will violate IOD.>
+B<NOTE: Turning this setting off violates IOD specification.>
 
 =head2 enable_brace => bool (default: 1)
 
@@ -584,7 +599,7 @@ Example:
 With C<enable_brace> turned off, value will not be a hash with two pairs, but
 will be a string with the value of (as Perl literal) C<'{"a":1,"b":2}'>.
 
-I<Turning off this setting will violate IOD.>
+B<NOTE: Turning this setting off violates IOD specification.>
 
 =head2 enable_tilde => bool (default: 1)
 
@@ -598,7 +613,7 @@ Example:
 
 With C<enable_tilde> turned off, value will still be literally C<~/logs>.
 
-I<Turning off this setting will violate IOD.>
+B<NOTE: Turning this setting off violates IOD specification.>
 
 =head2 allow_encodings => array
 
@@ -668,14 +683,14 @@ config file and force user to use JSON encoding or bracket to specify array:
  [section]
  a=[1,2]
 
-I<Turning off this setting will violate IOD.>
+B<NOTE: Turning this setting off violates IOD specification.>
 
 =head2 ignore_unknown_directive => bool (default: 0)
 
 If set to true, will not die if an unknown directive is encountered. It will
 simply be ignored as a regular comment.
 
-I<Turning on this setting will violate IOD.>
+B<NOTE: Turning this setting on violates IOD specification.>
 
 =for END_BLOCK: attributes
 
