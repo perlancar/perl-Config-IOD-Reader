@@ -2,6 +2,8 @@
 
 	- Introduce attribute: enable_directive.
 
+        - Add subclass: Config::IOD::INI::Reader.
+
 
 0.340   2018-04-04 (PERLANCAR)
 
