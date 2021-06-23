@@ -633,7 +633,7 @@ you'll also need to set C<enable_expr> to 1.
 
 =head2 enable_expr => bool (default: 0)
 
-Whether to enable C<expr> encoding. By default this is turned on, for safety.
+Whether to enable C<expr> encoding. By default this is turned off, for safety.
 Please see L</"EXPRESSION"> for more details.
 
 =head2 allow_directives => array
