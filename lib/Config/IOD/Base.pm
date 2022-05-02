@@ -1,12 +1,14 @@
 package Config::IOD::Base;
 
-# DATE
-# VERSION
-
 use 5.010001;
 use strict;
 use warnings;
 #use Carp; # avoided to shave a bit of startup time
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
 
 use constant +{
     COL_V_ENCODING => 0, # either "!j"... or '"', '[', '{', '~'
@@ -35,6 +37,7 @@ sub new {
     # disallow_encodings
     # allow_directives
     # disallow_directives
+    # warn_perl
     bless \%attrs, $class;
 }
 
@@ -103,7 +106,7 @@ sub _parse_command_line {
     push @argv, $buf if defined $buf;
 
     if ($escaped || $single_quoted || $double_quoted) {
-        return undef;
+        return undef; ## no critic: Subroutines::ProhibitExplicitReturnUndef
     }
 
     \@argv;
@@ -356,7 +359,7 @@ sub _get_user_home_dir {
 
     if ($^O eq 'MSWin32') {
         # not yet implemented
-        return undef;
+        return undef; ## no critic: Subroutines::ProhibitExplicitReturnUndef
     } else {
         # IF and only if we have getpwuid support, and the name of the user is
         # our own, shortcut to my_home. This is needed to handle HOME
@@ -370,7 +373,7 @@ sub _get_user_home_dir {
             return $home if $home and -d $home;
         }
 
-        return undef;
+        return undef; ## no critic: Subroutines::ProhibitExplicitReturnUndef
     }
 
 }
@@ -433,7 +436,7 @@ sub _decode_expr {
     require Config::IOD::Expr;
 
     my ($self, $val) = @_;
-    no strict 'refs';
+    no strict 'refs'; ## no critic: TestingAndDebugging::ProhibitNoStrict
     local *{"Config::IOD::Expr::_Compiled::val"} = sub {
         my $arg = shift;
         if ($arg =~ /(.+)\.(.+)/) {
@@ -443,6 +446,16 @@ sub _decode_expr {
         }
     };
     Config::IOD::Expr::_parse_expr($val);
+}
+
+sub _warn {
+    my ($self, $msg) = @_;
+    warn join(
+        "",
+        @{ $self->{_include_stack} } ? "$self->{_include_stack}[0] " : "",
+        "line $self->{_linum}: ",
+        $msg
+    );
 }
 
 sub _err {
@@ -491,7 +504,7 @@ sub _init_read {
     # set expr variables
     {
         last unless $self->{enable_expr};
-        no strict 'refs';
+        no strict 'refs'; ## no critic: TestingAndDebugging::ProhibitNoStrict
         my $pkg = \%{"Config::IOD::Expr::_Compiled::"};
         undef ${"Config::IOD::Expr::_Compiled::$_"} for keys %$pkg;
         my $vars = $self->{expr_vars};
@@ -691,6 +704,15 @@ If set to true, will not die if an unknown directive is encountered. It will
 simply be ignored as a regular comment.
 
 B<NOTE: Turning this setting on violates IOD specification.>
+
+=head2 warn_perl => bool (default: 0)
+
+Emit warning if configuration contains key line like these:
+
+ foo=>"bar"
+ foo => bar,
+
+which suggest user is assuming configuration is in Perl format instead of INI.
 
 =for END_BLOCK: attributes
 

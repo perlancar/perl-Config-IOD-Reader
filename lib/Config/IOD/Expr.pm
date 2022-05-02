@@ -1,11 +1,13 @@
 package Config::IOD::Expr;
 
-# DATE
-# VERSION
-
 use 5.010;
 use strict;
 use warnings;
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
 
 my $EXPR_RE = qr{
 
@@ -77,7 +79,7 @@ sub _parse_expr {
     my $str = shift;
 
     return [400, 'Not a valid expr'] unless $str =~ m{\A$EXPR_RE\z}o;
-    my $res = eval "package Config::IOD::Expr::_Compiled; no strict; no warnings; $str";
+    my $res = eval "package Config::IOD::Expr::_Compiled; no strict; no warnings; $str"; ## no critic: BuiltinFunctions::ProhibitStringyEval
     return [500, "Died when evaluating expr: $@"] if $@;
     [200, "OK", $res];
 }

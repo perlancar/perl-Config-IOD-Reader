@@ -1,13 +1,15 @@
 package Config::IOD::Reader;
 
-# DATE
-# VERSION
-
 use 5.010001;
 use strict;
 use warnings;
 
 use parent qw(Config::IOD::Base);
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
 
 sub _merge {
     my ($self, $section) = @_;
@@ -162,9 +164,14 @@ sub _read_string {
         }
 
         # key line
-        if ($line =~ /^\s*([^=]+?)\s*=\s*(.*)/) {
+        if ($line =~ /^\s*([^=]+?)\s*=(\s*)(.*)/) {
             my $key = $1;
-            my $val = $2;
+            my $space = $2;
+            my $val = $3;
+
+            if ($self->{warn_perl} && !$space && $val =~ /\A>/) {
+                $self->_warn("Probably using Perl syntax instead of INI: $line");
+            }
 
             # the common case is that value are not decoded or
             # quoted/bracketed/braced, so we avoid calling _parse_raw_value here

@@ -1,19 +1,21 @@
 package Test::Config::IOD::Common;
 
-# DATE
-# VERSION
-
 use 5.010;
 use strict;
 use warnings;
 
 use Test::More 0.98;
 
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
 our $CLASS = "Config::IOD::Reader";
 
 sub test_common_iod {
 
-    eval "require $CLASS"; die if $@;
+    eval "require $CLASS"; die if $@; ## no critic: BuiltinFunctions::ProhibitStringyEval
 
     subtest "opt: default_section" => sub {
         test_read_iod(
