@@ -710,9 +710,15 @@ B<NOTE: Turning this setting on violates IOD specification.>
 Emit warning if configuration contains key line like these:
 
  foo=>"bar"
- foo => bar,
+ foo => 123,
 
 which suggest user is assuming configuration is in Perl format instead of INI.
+
+If you enable this option, but happens to have a value that begins with ">", to
+avoid this warning you can quote the value first:
+
+ foo=">the value does begins with a greater-than sign"
+ bar=">the value does begins with a greater-than sign and ends with a comma,"
 
 =for END_BLOCK: attributes
 
