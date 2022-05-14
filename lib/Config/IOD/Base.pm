@@ -707,9 +707,15 @@ B<NOTE: Turning this setting on violates IOD specification.>
 
 =head2 warn_perl => bool (default: 0)
 
-Emit warning if configuration contains key line like these:
+If set to true, emit warning if configuration contains key line like these:
 
  foo=>"bar"
+ foo => "bar"
+ foo=>"bar",
+ foo => "bar",
+ foo=>123
+ foo => 123
+ foo=>123,
  foo => 123,
 
 which suggest user is assuming configuration is in Perl format instead of INI.
